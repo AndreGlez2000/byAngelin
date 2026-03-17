@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Client {
+  id           String       @id @default(cuid())
+  name         String
+  phone        String       @unique
+  email        String?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  skinProfile  SkinProfile?
+  appointments Appointment[]
+}
+
+model SkinProfile {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  skinType     String?
+  concerns     String[]
+  allergies    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Appointment {
+  id                    String            @id @default(cuid())
+  clientId              String
+  service               String
+  date                  DateTime
+  durationMin           Int               @default(60)
+  status                AppointmentStatus @default(CONFIRMED)
+  notes                 String?
+  googleCalendarEventId String?
+  whatsappReminderSent  Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  client                Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
