@@ -4,55 +4,65 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
 }
 
 model Client {
-  id           String       @id @default(cuid())
+  id           String        @id @default(cuid())
   name         String
-  phone        String       @unique
+  phone        String        @unique
   email        String?
-  notes        String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  skinProfile  SkinProfile?
+  createdAt    DateTime      @default(now())
   appointments Appointment[]
+  skinProfile  SkinProfile?
 }
 
 model SkinProfile {
-  id           String   @id @default(cuid())
-  clientId     String   @unique
-  skinType     String?
-  concerns     String[]
-  allergies    String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                   String   @id @default(cuid())
+  clientId             String   @unique
+  fecha                DateTime
+  edad                 Int?
+  fototipo             String?
+  biotipo              String?
+  sensibilidad         String?
+  hidratacion          String?
+  grosorPiel           String?
+  alteracionesCutaneas String?
+  elasticidad          String?
+  resistencias         String?
+  pigmentaciones       String?
+  vitalidadOxigenacion String?
+  habitos              String?
+  embarazo             String?
+  exposicionSolar      String?
+  deporte              String?
+  enfermedades         String?
+  medicamentos         String?
+  apoyoEnCasa          String?
+  comentarios          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  client               Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Appointment {
-  id                    String            @id @default(cuid())
-  clientId              String
-  service               String
-  date                  DateTime
-  durationMin           Int               @default(60)
-  status                AppointmentStatus @default(CONFIRMED)
-  notes                 String?
-  googleCalendarEventId String?
-  whatsappReminderSent  Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  client                Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                       String            @id @default(cuid())
+  clientId                 String
+  service                  String
+  date                     DateTime
+  status                   AppointmentStatus @default(CONFIRMED)
+  sessionNotes             String?
+  gcalEventId              String?
+  whatsappConfirmationSent Boolean           @default(false)
+  whatsappReminderSent     Boolean           @default(false)
+  createdAt                DateTime          @default(now())
+  client                   Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 enum AppointmentStatus {
