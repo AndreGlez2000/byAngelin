@@ -76,7 +76,7 @@ export default function ClientDetailPage() {
   const [showSkinModal, setShowSkinModal] = useState(false)
   const [skinForm, setSkinForm] = useState<SkinForm>(toForm(null))
   const [savingSkin, setSavingSkin] = useState(false)
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
+  const [editingNotes, setEditingNotes] = useState<Map<string, string>>(new Map())
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${id}`)
@@ -115,12 +115,33 @@ export default function ClientDetailPage() {
     setSkinForm(f => ({ ...f, [key]: value }))
   }
 
-  function toggleNotes(id: string) {
-    setExpandedNotes(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
+  function openEdit(id: string, current: string | null) {
+    setEditingNotes(prev => new Map(prev).set(id, current ?? ''))
+  }
+
+  function cancelEdit(id: string) {
+    setEditingNotes(prev => { const n = new Map(prev); n.delete(id); return n })
+  }
+
+  async function saveNote(id: string) {
+    const text = editingNotes.get(id) ?? ''
+    await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionNotes: text.trim() || null }),
     })
+    cancelEdit(id)
+    loadClient()
+  }
+
+  async function deleteNote(id: string) {
+    await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionNotes: null }),
+    })
+    cancelEdit(id)
+    loadClient()
   }
 
   if (!client) {
@@ -241,13 +262,15 @@ export default function ClientDetailPage() {
               {client.appointments.map(a => {
                 const d = new Date(a.date)
                 const hasNotes = !!a.sessionNotes
-                const isExpanded = expandedNotes.has(a.id)
+                const isEditing = editingNotes.has(a.id)
+                const editText = editingNotes.get(a.id) ?? ''
                 return (
                   <div
                     key={a.id}
-                    onClick={() => hasNotes && toggleNotes(a.id)}
-                    className={`bg-white rounded-xl shadow-card p-4 transition-shadow ${hasNotes ? 'cursor-pointer hover:shadow-md' : ''}`}
+                    onClick={() => !isEditing && openEdit(a.id, a.sessionNotes)}
+                    className="bg-white rounded-xl shadow-card p-4 transition-shadow cursor-pointer hover:shadow-md"
                   >
+                    {/* Header row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="text-center shrink-0 w-10">
@@ -261,10 +284,14 @@ export default function ClientDetailPage() {
                             <p className="text-xs text-olive/50">
                               {d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                             </p>
-                            {hasNotes && (
+                            {hasNotes && !isEditing && (
                               <FileText size={10} className="text-olive/35" />
                             )}
                           </div>
+                          {/* Note preview when collapsed */}
+                          {hasNotes && !isEditing && (
+                            <p className="text-xs text-olive/50 mt-1 truncate">{a.sessionNotes}</p>
+                          )}
                         </div>
                       </div>
                       <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 font-medium ${STATUS_COLOR[a.status]}`}>
@@ -272,11 +299,40 @@ export default function ClientDetailPage() {
                       </span>
                     </div>
 
-                    {/* Accordion notes */}
-                    {hasNotes && (
-                      <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-40 mt-3' : 'max-h-0'}`}>
-                        <div className="pt-3 border-t border-olive/8">
-                          <p className="text-xs text-olive/60 leading-relaxed">{a.sessionNotes}</p>
+                    {/* Inline edit area */}
+                    {isEditing && (
+                      <div className="mt-3 pt-3 border-t border-olive/8" onClick={e => e.stopPropagation()}>
+                        <textarea
+                          autoFocus
+                          value={editText}
+                          onChange={e => setEditingNotes(prev => new Map(prev).set(a.id, e.target.value))}
+                          placeholder="Escribe una nota de sesión…"
+                          rows={3}
+                          className="w-full border border-olive/20 rounded-lg px-3 py-2 text-xs text-olive focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
+                        />
+                        <div className="flex items-center justify-between mt-2">
+                          {hasNotes ? (
+                            <button
+                              onClick={() => deleteNote(a.id)}
+                              className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          ) : <div />}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => cancelEdit(a.id)}
+                              className="text-xs border border-olive/20 text-olive px-3 py-1.5 rounded-lg hover:bg-olive/5 transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => saveNote(a.id)}
+                              className="text-xs bg-olive-dark text-white px-3 py-1.5 rounded-lg hover:bg-olive transition-colors"
+                            >
+                              Guardar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
