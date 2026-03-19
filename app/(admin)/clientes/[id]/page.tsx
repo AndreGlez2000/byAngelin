@@ -77,6 +77,9 @@ export default function ClientDetailPage() {
   const [skinForm, setSkinForm] = useState<SkinForm>(toForm(null))
   const [savingSkin, setSavingSkin] = useState(false)
   const [editingNotes, setEditingNotes] = useState<Map<string, string>>(new Map())
+  const [showEditClient, setShowEditClient] = useState(false)
+  const [editClientForm, setEditClientForm] = useState({ name: '', phone: '', email: '' })
+  const [savingClient, setSavingClient] = useState(false)
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${id}`)
@@ -86,6 +89,30 @@ export default function ClientDetailPage() {
   }
 
   useEffect(() => { loadClient() }, [id])
+
+  function openEditClient() {
+    if (!client) return
+    setEditClientForm({ name: client.name, phone: client.phone, email: client.email ?? '' })
+    setShowEditClient(true)
+  }
+
+  async function handleEditClientSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!client) return
+    setSavingClient(true)
+    await fetch(`/api/clients/${client.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editClientForm.name.trim(),
+        phone: editClientForm.phone.trim(),
+        email: editClientForm.email.trim() || null,
+      }),
+    })
+    setSavingClient(false)
+    setShowEditClient(false)
+    loadClient()
+  }
 
   function openSkinModal() {
     setSkinForm(toForm(client?.skinProfile ?? null))
@@ -197,9 +224,17 @@ export default function ClientDetailPage() {
             <div className="w-14 h-14 rounded-full bg-blossom/25 flex items-center justify-center mx-auto mb-2">
               <span className="text-blossom-dark font-semibold text-xl">{client.name.charAt(0)}</span>
             </div>
-            <h2 className="font-display text-lg text-olive italic leading-tight">{client.name}</h2>
+            <div className="flex items-center justify-center gap-1.5">
+              <h2 className="font-display text-lg text-olive italic leading-tight">{client.name}</h2>
+              <button onClick={openEditClient} className="text-olive/30 hover:text-olive/60 transition-colors">
+                <Pencil size={11} />
+              </button>
+            </div>
             <p className="text-xs text-olive/50 mt-0.5">{client.phone}</p>
-            {client.email && <p className="text-[10px] text-olive/35 mt-0.5">{client.email}</p>}
+            {client.email
+              ? <p className="text-[10px] text-olive/35 mt-0.5">{client.email}</p>
+              : <button onClick={openEditClient} className="text-[10px] text-blossom-dark/60 hover:text-blossom-dark mt-0.5">+ agregar correo</button>
+            }
           </div>
 
           {/* Stats */}
@@ -343,6 +378,51 @@ export default function ClientDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Modal: Editar Clienta */}
+      {showEditClient && (
+        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 shadow-modal w-full max-w-xs">
+            <h2 className="font-display text-xl text-olive italic mb-4">Editar Clienta</h2>
+            <form onSubmit={handleEditClientSave} className="space-y-3">
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Nombre</label>
+                <input
+                  required
+                  value={editClientForm.name}
+                  onChange={e => setEditClientForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Teléfono</label>
+                <input
+                  required
+                  value={editClientForm.phone}
+                  onChange={e => setEditClientForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Correo electrónico</label>
+                <input
+                  type="email"
+                  value={editClientForm.email}
+                  onChange={e => setEditClientForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="opcional"
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowEditClient(false)} className="flex-1 border border-olive/20 text-olive text-sm py-2 rounded-lg hover:bg-olive/5">Cancelar</button>
+                <button type="submit" disabled={savingClient} className="flex-1 bg-blossom-dark text-white text-sm py-2 rounded-lg hover:bg-blossom disabled:opacity-50">
+                  {savingClient ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Nueva Cita */}
       {showNovaCita && (
