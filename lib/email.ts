@@ -4,16 +4,16 @@ import { ConfirmacionCita } from '@/emails/ConfirmacionCita'
 import { RecordatorioCita } from '@/emails/RecordatorioCita'
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || '587', 10),
-  secure: process.env.EMAIL_SECURE === 'true',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
   },
 })
 
-const FROM = process.env.EMAIL_FROM || 'noreply@angelin.com'
+const FROM = `Angelin Esthetician <${process.env.GMAIL_USER}>`
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('es-MX', {
