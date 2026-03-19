@@ -59,8 +59,8 @@ model Appointment {
   status                   AppointmentStatus @default(CONFIRMED)
   sessionNotes             String?
   gcalEventId              String?
-  whatsappConfirmationSent Boolean           @default(false)
-  whatsappReminderSent     Boolean           @default(false)
+  emailConfirmationSent    Boolean           @default(false)
+  emailReminderSent        Boolean           @default(false)
   pricePaid                Float?
   paymentMethod            String?
   createdAt                DateTime          @default(now())

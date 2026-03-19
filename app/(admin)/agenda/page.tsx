@@ -456,9 +456,9 @@ export default function AgendaPage() {
               <div className="bg-parchment rounded-xl p-3 space-y-2">
                 <p className="text-[10px] text-olive/50 uppercase tracking-widest mb-1">Automatizaciones al guardar</p>
                 {[
-                  'Enviar confirmación vía WhatsApp inmediatamente',
+                  'Enviar confirmación por correo inmediatamente',
                   'Crear evento en Google Calendar',
-                  'Programar recordatorio WhatsApp 24h antes',
+                  'Programar recordatorio por correo 24h antes',
                 ].map((label, i) => (
                   <label key={i} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" defaultChecked={i < 2} className="accent-blossom-dark" />

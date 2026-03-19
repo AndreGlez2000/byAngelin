@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { sendConfirmationEmail } from '@/lib/email'
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
@@ -33,6 +34,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'clientId, service, and date are required' }, { status: 400 })
   }
 
+  const client = await db.client.findUnique({
+    where: { id: clientId },
+    select: { name: true, email: true, _count: { select: { appointments: true } } },
+  })
+
   const appointment = await db.appointment.create({
     data: {
       clientId,
@@ -40,7 +46,27 @@ export async function POST(req: Request) {
       date: new Date(date),
       sessionNotes: sessionNotes ?? null,
     },
-    include: { client: { select: { id: true, name: true, phone: true } } },
+    include: { client: { select: { id: true, name: true, phone: true, email: true } } },
   })
+
+  // Send confirmation email if client has email
+  if (client?.email) {
+    const isFirstVisit = client._count.appointments === 0
+    sendConfirmationEmail({
+      to: client.email,
+      clientName: client.name,
+      service,
+      date: new Date(date),
+      price: null,
+      isFirstVisit,
+    }).catch(err => console.error('[email] confirmation failed:', err))
+
+    // Mark email as sent
+    await db.appointment.update({
+      where: { id: appointment.id },
+      data: { emailConfirmationSent: true },
+    })
+  }
+
   return NextResponse.json(appointment, { status: 201 })
 }
