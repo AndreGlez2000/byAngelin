@@ -1,0 +1,492 @@
+'use client'
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, Plus, FileText } from 'lucide-react'
+
+type Client = { id: string; name: string; phone: string }
+type Service = { id: string; name: string; category: string; duration: string; price: string }
+type Appointment = {
+  id: string
+  service: string
+  date: string
+  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  sessionNotes: string | null
+  pricePaid?: number | null
+  paymentMethod?: string | null
+  client: Client
+}
+
+type PayModal = {
+  id: string
+  serviceName: string
+  pricePaid: string
+  paymentMethod: string
+  sessionNotes: string
+}
+
+const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
+const STATUS_BG = {
+  CONFIRMED: 'bg-blossom/25',
+  COMPLETED: 'bg-moss/25',
+  CANCELLED: 'bg-olive/8 opacity-60',
+}
+const STATUS_DOT = {
+  CONFIRMED: 'bg-blossom-dark',
+  COMPLETED: 'bg-moss',
+  CANCELLED: 'bg-olive/30',
+}
+
+function mondayOf(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+function addDays(date: Date, n: number): Date {
+  const d = new Date(date)
+  d.setDate(d.getDate() + n)
+  return d
+}
+
+export default function AgendaPage() {
+  const router = useRouter()
+  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ clientId: '', service: '', customService: '', date: '', time: '', sessionNotes: '' })
+  const [saving, setSaving] = useState(false)
+  const [payModal, setPayModal] = useState<PayModal | null>(null)
+
+  const weekEnd = addDays(weekStart, 6)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const today = new Date()
+
+  const fetchAppointments = useCallback(async () => {
+    const end = addDays(weekStart, 6)
+    end.setHours(23, 59, 59, 999)
+    const res = await fetch(`/api/appointments?from=${weekStart.toISOString()}&to=${end.toISOString()}`)
+    if (res.ok) setAppointments(await res.json())
+  }, [weekStart])
+
+  useEffect(() => { fetchAppointments() }, [fetchAppointments])
+  useEffect(() => {
+    fetch('/api/clients').then(r => r.json()).then(setClients)
+    fetch('/api/services?active=true').then(r => r.json()).then(setServices)
+  }, [])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const dateTime = form.date && form.time ? `${form.date}T${form.time}` : form.date
+    const serviceName = form.service === '__custom__' ? form.customService : form.service
+    await fetch('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: form.clientId,
+        service: serviceName,
+        date: dateTime,
+        sessionNotes: form.sessionNotes || null,
+      }),
+    })
+    setShowModal(false)
+    setForm({ clientId: '', service: '', customService: '', date: '', time: '', sessionNotes: '' })
+    setSaving(false)
+    fetchAppointments()
+  }
+
+  async function changeStatus(id: string, status: string, serviceName: string) {
+    if (status === 'COMPLETED') {
+      const svc = services.find(s => s.name === serviceName)
+      const numeric = svc ? parseFloat(svc.price.replace(/[^0-9.]/g, '')) : NaN
+      const appt = appointments.find(a => a.id === id)
+      setPayModal({
+        id,
+        serviceName,
+        pricePaid: Number.isFinite(numeric) ? String(numeric) : '',
+        paymentMethod: 'Efectivo',
+        sessionNotes: appt?.sessionNotes ?? '',
+      })
+      return
+    }
+    await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    fetchAppointments()
+  }
+
+  async function handleCompleteWithPayment() {
+    if (!payModal) return
+    await fetch(`/api/appointments/${payModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'COMPLETED',
+        pricePaid: payModal.pricePaid !== '' ? parseFloat(payModal.pricePaid) : null,
+        paymentMethod: payModal.paymentMethod,
+        sessionNotes: payModal.sessionNotes || null,
+      }),
+    })
+    setPayModal(null)
+    fetchAppointments()
+  }
+
+  const weekLabel = `Semana ${weekStart.getDate()} - ${weekEnd.getDate()} ${MONTHS_SHORT[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Top bar */}
+      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setWeekStart(w => addDays(w, -7))}
+              className="p-1.5 rounded-lg hover:bg-white/60 text-olive/60 hover:text-olive transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-medium text-olive min-w-[200px] text-center">{weekLabel}</span>
+            <button
+              onClick={() => setWeekStart(w => addDays(w, 7))}
+              className="p-1.5 rounded-lg hover:bg-white/60 text-olive/60 hover:text-olive transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <button
+            onClick={() => setWeekStart(mondayOf(new Date()))}
+            className="text-xs bg-olive-dark text-white px-3 py-1.5 rounded-full font-medium hover:bg-olive transition-colors shadow-sm"
+          >
+            Hoy
+          </button>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
+        >
+          <Plus size={14} />
+          Nueva Cita
+        </button>
+      </div>
+
+      {/* Calendar grid */}
+      <div className="flex-1 overflow-auto px-4 pb-4 pt-3">
+        <div className="bg-white rounded-xl shadow-card overflow-hidden min-w-[700px]">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b border-olive/10">
+            {days.map((day, i) => {
+              const isToday =
+                day.getDate() === today.getDate() &&
+                day.getMonth() === today.getMonth() &&
+                day.getFullYear() === today.getFullYear()
+              return (
+                <div
+                  key={i}
+                  className={`px-2 py-3 text-center border-r border-olive/8 last:border-r-0 ${
+                    isToday ? 'bg-olive-dark' : ''
+                  }`}
+                >
+                  <div className={`text-[10px] uppercase tracking-widest font-medium ${isToday ? 'text-white/60' : 'text-olive/40'}`}>
+                    {DAY_NAMES[i]}
+                  </div>
+                  <div className={`text-xl font-semibold mt-0.5 leading-none ${isToday ? 'text-white' : 'text-olive'}`}>
+                    {day.getDate()}
+                  </div>
+                  <div className={`text-[10px] mt-0.5 ${isToday ? 'text-white/50' : 'text-olive/30'}`}>
+                    {MONTHS_SHORT[day.getMonth()]}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Appointment columns */}
+          <div className="grid grid-cols-7 min-h-[400px]">
+            {days.map((day, i) => {
+              const dayAppts = appointments
+                .filter(a => {
+                  const d = new Date(a.date)
+                  return (
+                    d.getFullYear() === day.getFullYear() &&
+                    d.getMonth() === day.getMonth() &&
+                    d.getDate() === day.getDate()
+                  )
+                })
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              const isToday =
+                day.getDate() === today.getDate() &&
+                day.getMonth() === today.getMonth() &&
+                day.getFullYear() === today.getFullYear()
+              return (
+                <div
+                  key={i}
+                  className={`border-r border-olive/8 last:border-r-0 p-1.5 space-y-1.5 ${
+                    isToday ? 'bg-parchment/60' : ''
+                  }`}
+                >
+                  {dayAppts.map(a => {
+                    const time = new Date(a.date).toLocaleTimeString('es-MX', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })
+                    return (
+                      <div
+                        key={a.id}
+                        onClick={() => router.push(`/clientes/${a.client.id}`)}
+                        className={`rounded-lg p-2 cursor-pointer group hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[a.status]}`}
+                      >
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] text-olive/50 font-mono">{time}</span>
+                          {a.sessionNotes && (
+                            <FileText size={10} className="text-olive/40 shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs font-medium text-olive leading-tight truncate">{a.service}</div>
+                        <div className="text-[10px] text-olive/60 truncate mt-0.5">{a.client.name}</div>
+                        <select
+                          value={a.status}
+                          onChange={e => changeStatus(a.id, e.target.value, a.service)}
+                          onClick={e => e.stopPropagation()}
+                          className="mt-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-white/60 border-0 outline-none cursor-pointer text-olive/60 w-full"
+                        >
+                          {(Object.keys(STATUS_LABEL) as Array<keyof typeof STATUS_LABEL>).map(s => (
+                            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mt-3 px-1">
+          {(Object.keys(STATUS_LABEL) as Array<keyof typeof STATUS_LABEL>).map(s => (
+            <div key={s} className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`} />
+              <span className="text-xs text-olive/50">{STATUS_LABEL[s]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Modal de pago al completar cita */}
+      {payModal && (
+        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-xs">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-display text-2xl text-olive italic">Completar Cita</h2>
+              <button onClick={() => setPayModal(null)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
+            </div>
+            <p className="text-xs text-olive/50 mb-4">{payModal.serviceName}</p>
+
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Monto cobrado (MXN)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-olive/40">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={payModal.pricePaid}
+                    onChange={e => setPayModal(m => m ? { ...m, pricePaid: e.target.value } : m)}
+                    className="w-full border border-olive/20 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Método de pago</label>
+                <div className="flex gap-2">
+                  {['Efectivo', 'Transferencia', 'Tarjeta'].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPayModal(p => p ? { ...p, paymentMethod: m } : p)}
+                      className={`flex-1 text-xs py-2 rounded-lg border transition-colors ${
+                        payModal.paymentMethod === m
+                          ? 'bg-olive-dark text-white border-olive-dark'
+                          : 'border-olive/20 text-olive/60 hover:border-olive/40'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Notas de sesión (opcional)</label>
+                <textarea
+                  placeholder="Observaciones, reacciones, productos usados…"
+                  value={payModal.sessionNotes}
+                  onChange={e => setPayModal(m => m ? { ...m, sessionNotes: e.target.value } : m)}
+                  rows={3}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPayModal(null)}
+                  className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompleteWithPayment}
+                  className="flex-1 bg-moss text-white text-sm py-2.5 rounded-lg hover:bg-moss/80 transition-colors"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal nueva cita */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-2xl text-olive italic">Nueva Cita</h2>
+              <button onClick={() => setShowModal(false)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
+            </div>
+            <form onSubmit={handleCreate} className="flex flex-col gap-3">
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Clienta</label>
+                <select
+                  required
+                  value={form.clientId}
+                  onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                >
+                  <option value="">Seleccionar clienta…</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Servicio</label>
+                <select
+                  required
+                  value={form.service}
+                  onChange={e => setForm(f => ({ ...f, service: e.target.value, customService: '' }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
+                >
+                  <option value="">Seleccionar servicio…</option>
+                  {['Facial', 'Extra / Complemento'].map(cat => {
+                    const catServices = services.filter(s => s.category === cat)
+                    if (catServices.length === 0) return null
+                    return (
+                      <optgroup key={cat} label={cat}>
+                        {catServices.map(s => (
+                          <option key={s.id} value={s.name}>
+                            {s.name} · {s.duration} · {s.price}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )
+                  })}
+                  <option value="__custom__">Otro (escribir manualmente)…</option>
+                </select>
+                {form.service === '__custom__' && (
+                  <input
+                    required
+                    placeholder="Nombre del servicio…"
+                    value={form.customService}
+                    onChange={e => setForm(f => ({ ...f, customService: e.target.value }))}
+                    className="mt-1.5 w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Fecha</label>
+                  <input
+                    required
+                    type="date"
+                    value={form.date}
+                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Hora</label>
+                  <input
+                    required
+                    type="time"
+                    value={form.time}
+                    onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Notas (opcional)</label>
+                <textarea
+                  placeholder="Indicaciones, observaciones…"
+                  value={form.sessionNotes}
+                  onChange={e => setForm(f => ({ ...f, sessionNotes: e.target.value }))}
+                  rows={2}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
+                />
+              </div>
+
+              {/* Automations (UI only — Chunks 5 & 6) */}
+              <div className="bg-parchment rounded-xl p-3 space-y-2">
+                <p className="text-[10px] text-olive/50 uppercase tracking-widest mb-1">Automatizaciones al guardar</p>
+                {[
+                  'Enviar confirmación vía WhatsApp inmediatamente',
+                  'Crear evento en Google Calendar',
+                  'Programar recordatorio WhatsApp 24h antes',
+                ].map((label, i) => (
+                  <label key={i} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" defaultChecked={i < 2} className="accent-blossom-dark" />
+                    <span className="text-xs text-olive/70">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-blossom-dark text-white text-sm py-2.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Guardando…' : 'Guardar Cita'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
