@@ -1,11 +1,19 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { render } from '@react-email/components'
 import { ConfirmacionCita } from '@/emails/ConfirmacionCita'
 import { RecordatorioCita } from '@/emails/RecordatorioCita'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: parseInt(process.env.EMAIL_PORT || '587', 10),
+  secure: process.env.EMAIL_SECURE === 'true',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+})
 
-const FROM = 'Angelin Esthetician <noreply@angelinesthetician.com>'
+const FROM = process.env.EMAIL_FROM || 'noreply@angelin.com'
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('es-MX', {
@@ -39,7 +47,7 @@ export async function sendConfirmationEmail(params: {
     })
   )
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to: params.to,
     subject: `Cita confirmada — ${params.service}`,
@@ -64,7 +72,7 @@ export async function sendReminderEmail(params: {
     })
   )
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to: params.to,
     subject: `Recordatorio: tu cita es mañana — ${params.service}`,
