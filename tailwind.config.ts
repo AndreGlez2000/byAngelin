@@ -30,9 +30,9 @@ const config: Config = {
         "dark-olive": "#3D2B1F",
       },
       fontFamily: {
-        display: ["Cormorant Garamond", "Georgia", "serif"],
-        script: ["Pinyon Script", "cursive"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["var(--font-cormorant)", "Georgia", "serif"],
+        script: ["var(--font-pinyon)", "cursive"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       boxShadow: {
         card: "0 2px 8px rgba(61, 43, 31, 0.08)",

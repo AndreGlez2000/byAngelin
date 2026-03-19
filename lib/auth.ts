@@ -13,7 +13,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
-        const user = await db.user.findUnique({ where: { email: credentials.email } })
+        const email = credentials.email.includes('@')
+          ? credentials.email
+          : `${credentials.email}@admin.com`
+        const user = await db.user.findUnique({ where: { email } })
         if (!user) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
