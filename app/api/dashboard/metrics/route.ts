@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 
 // GET /api/dashboard/metrics
 // Retorna KPIs del mes actual + histórico de ingresos + servicios más rentables + stock bajo
-export async function GET(_req: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

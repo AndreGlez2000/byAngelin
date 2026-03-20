@@ -22,7 +22,7 @@ const EMBARAZO_OPTIONS = ['No', 'Sí', 'Lactancia']
 const EXPOSICION_OPTIONS = ['Baja', 'Media', 'Alta']
 const APOYO_OPTIONS = ['Baja', 'Media', 'Alta']
 
-function Select({ name, label, options, value, onChange, required }: {
+function Select({ name: _name, label, options, value, onChange, required }: {
   name: string; label: string; options: string[]
   value: string; onChange: (v: string) => void; required?: boolean
 }) {

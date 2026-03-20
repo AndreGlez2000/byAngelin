@@ -28,7 +28,6 @@ type Metrics = {
   lowStock: LowStockItem[]
 }
 
-const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_DOT: Record<string, string> = {
   CONFIRMED: 'bg-blossom-dark',
   COMPLETED: 'bg-moss',

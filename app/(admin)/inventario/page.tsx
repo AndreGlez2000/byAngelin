@@ -25,7 +25,7 @@ function mxn(n: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
 }
 
-function StockBar({ stock, capacity, alert }: { stock: number; capacity: number; alert: number }) {
+function StockBar({ stock, capacity, alert: _alert }: { stock: number; capacity: number; alert: number }) {
   const pct = capacity > 0 ? Math.min((stock / capacity) * 100, 100) : 0
   const color = pct > 50 ? 'bg-moss' : pct > 10 ? 'bg-amber-400' : 'bg-red-400'
   return (

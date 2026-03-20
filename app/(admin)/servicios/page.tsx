@@ -134,7 +134,7 @@ export default function ServiciosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((s, i) => (
+                  {items.map((s) => (
                     <tr key={s.id} className={`border-b border-olive/6 last:border-b-0 ${!s.isActive ? 'opacity-45' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{s.name}</div>
