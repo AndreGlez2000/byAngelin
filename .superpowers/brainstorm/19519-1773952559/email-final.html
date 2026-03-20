@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #f5f4f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  h2 { font-family: -apple-system, sans-serif; color: #3d4a35; text-align: center; margin: 24px 0 6px; }
+  .subtitle { color: #9a9a7a; font-size: 13px; text-align: center; margin: 0 0 24px; }
+</style>
+</head>
+<body>
+<h2>Email final — ¿aprobado?</h2>
+<p class="subtitle">B con el logo tipográfico. Click en la tarjeta para aprobar.</p>
+
+<div style="background:#f5f4f0;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+
+  <!-- Logo centrado -->
+  <div style="text-align:center;margin-bottom:24px;">
+    <!-- Monograma Ae con borde punteado -->
+    <div style="display:inline-block;border:1px dashed #8a9a80;padding:8px 16px;margin-bottom:8px;">
+      <span style="font-family:'Pinyon Script',cursive;font-size:42px;color:#5a6e50;line-height:1;">Ae</span>
+    </div>
+    <!-- Nombre con borde punteado abajo -->
+    <div style="border:1px dashed #8a9a80;display:inline-block;padding:4px 18px;">
+      <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;color:#5a6e50;letter-spacing:4px;text-transform:uppercase;">Angelin Esthetician</span>
+    </div>
+  </div>
+
+  <!-- White card -->
+  <div style="background:#fff;border-radius:12px;overflow:hidden;max-width:420px;margin:0 auto;border:1px solid #e8e4dc;">
+
+    <div style="padding:28px 28px 20px;">
+      <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#1a1a14;letter-spacing:-0.2px;">Tu cita está confirmada</p>
+      <p style="margin:0 0 20px;font-size:13px;color:#6a6a50;line-height:1.6;">Hola <strong>María</strong>, aquí están los detalles de tu cita.</p>
+
+      <!-- Details box -->
+      <div style="background:#f8f6f2;border-radius:8px;padding:16px;margin-bottom:18px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#9a9a7a;">Servicio</td>
+            <td style="padding:6px 0;font-size:12px;color:#2a2a1a;font-weight:500;text-align:right;">Facial Hidratante</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#9a9a7a;">Fecha</td>
+            <td style="padding:6px 0;font-size:12px;color:#2a2a1a;font-weight:500;text-align:right;">Vie 21 marzo, 2026</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#9a9a7a;">Hora</td>
+            <td style="padding:6px 0;font-size:12px;color:#2a2a1a;font-weight:500;text-align:right;">10:00 AM</td>
+          </tr>
+          <tr style="border-top:1px solid #eae6de;">
+            <td style="padding:10px 0 4px;font-size:12px;color:#9a9a7a;">Total</td>
+            <td style="padding:10px 0 4px;font-size:16px;color:#3d4a35;font-weight:700;text-align:right;">$850 MXN</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Primera visita -->
+      <div style="border-radius:8px;padding:12px 14px;border:1px solid #f0e8d0;background:#fdfaf4;margin-bottom:20px;">
+        <p style="margin:0;font-size:11px;color:#7a6040;line-height:1.7;">🌿 <strong>Primera visita:</strong> Por favor llega <strong>15 minutos antes</strong> para completar tu ficha de análisis de piel.</p>
+      </div>
+
+      <p style="margin:0;font-size:12px;color:#9a9a7a;line-height:1.6;">¿Necesitas reagendar? Responde a este correo.<br/>— <em style="color:#c87a8a;font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;">Angelin</em></p>
+    </div>
+
+    <div style="padding:14px 28px;background:#faf8f5;border-top:1px solid #f0ece2;">
+      <p style="margin:0;font-size:10px;color:#c0bba8;text-align:center;">Angelin Esthetician Studio · correo automático</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.querySelector('[style*="padding:32px"]').onclick = function() {
+  this.style.outline = this.style.outline ? '' : '3px solid #c87a8a';
+  const event = { type: 'click', choice: 'approved', text: 'Email final aprobado', timestamp: Date.now() };
+  fetch('/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event) }).catch(() => {});
+};
+</script>
+</body>
+</html>

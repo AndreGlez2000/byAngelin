@@ -1,0 +1,131 @@
+<h2>¿Cómo se revelan las notas al hacer click en una cita del historial?</h2>
+<p class="subtitle">Las notas ya se guardan — esta es la pregunta de interacción visual.</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:12px;background:#faf8f3;border-radius:8px;font-size:12px;">
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="display:flex;gap:10px;">
+              <div style="text-align:center;min-width:28px;">
+                <div style="font-size:18px;font-weight:700;color:#4a5240;line-height:1;">12</div>
+                <div style="font-size:9px;color:#9a9a7a;">mar</div>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#4a5240;">Facial Hidratante</div>
+                <div style="color:#9a9a7a;font-size:10px;">10:00</div>
+              </div>
+            </div>
+            <span style="background:#e8f0e4;color:#4a5240;border-radius:20px;padding:2px 8px;font-size:10px;">Completada</span>
+          </div>
+          <!-- Notes always visible -->
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0ece2;font-size:11px;color:#7a7a5a;line-height:1.5;">
+            Piel reactiva al inicio, se calmó bien con la mascarilla de centella. Recomendar SPF diario.
+          </div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+          <div style="display:flex;justify-content:space-between;">
+            <div style="display:flex;gap:10px;">
+              <div style="text-align:center;min-width:28px;">
+                <div style="font-size:18px;font-weight:700;color:#4a5240;line-height:1;">28</div>
+                <div style="font-size:9px;color:#9a9a7a;">feb</div>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#4a5240;">Limpieza Profunda</div>
+                <div style="color:#9a9a7a;font-size:10px;">11:30</div>
+              </div>
+            </div>
+            <span style="background:#e8f0e4;color:#4a5240;border-radius:20px;padding:2px 8px;font-size:10px;">Completada</span>
+          </div>
+          <!-- No notes = nothing shown -->
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Siempre visible</h3>
+      <p>Las notas se muestran inline siempre que existen. Sin interacción, sin clicks. Simple y directo.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:12px;background:#faf8f3;border-radius:8px;font-size:12px;">
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;gap:10px;">
+              <div style="text-align:center;min-width:28px;">
+                <div style="font-size:18px;font-weight:700;color:#4a5240;line-height:1;">12</div>
+                <div style="font-size:9px;color:#9a9a7a;">mar</div>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#4a5240;">Facial Hidratante</div>
+                <div style="color:#9a9a7a;font-size:10px;">10:00 · 📝 con notas</div>
+              </div>
+            </div>
+            <span style="background:#e8f0e4;color:#4a5240;border-radius:20px;padding:2px 8px;font-size:10px;">Completada</span>
+          </div>
+          <!-- Expanded (clicked state) -->
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0ece2;font-size:11px;color:#7a7a5a;line-height:1.5;background:#faf8f3;border-radius:6px;padding:8px;">
+            ▲ Piel reactiva al inicio, se calmó bien con la mascarilla de centella. Recomendar SPF diario.
+          </div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;gap:10px;">
+              <div style="text-align:center;min-width:28px;">
+                <div style="font-size:18px;font-weight:700;color:#4a5240;line-height:1;">28</div>
+                <div style="font-size:9px;color:#9a9a7a;">feb</div>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#4a5240;">Limpieza Profunda</div>
+                <div style="color:#9a9a7a;font-size:10px;">11:30</div>
+              </div>
+            </div>
+            <span style="background:#e8f0e4;color:#4a5240;border-radius:20px;padding:2px 8px;font-size:10px;">Completada</span>
+          </div>
+          <!-- Collapsed hint -->
+          <div style="margin-top:6px;font-size:10px;color:#c0bba0;">▼ click para ver notas</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Accordion (expand/collapse)</h3>
+      <p>Las tarjetas son clickeables. Si hay notas, se expanden al hacer click. Si no hay, muestra hint sutil.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:12px;background:#faf8f3;border-radius:8px;font-size:12px;position:relative;">
+        <!-- Background cards -->
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:8px;opacity:0.4;">
+          <div style="display:flex;gap:10px;"><div><div style="font-weight:600;color:#4a5240;">Facial Hidratante</div><div style="color:#9a9a7a;font-size:10px;">12 mar · 10:00</div></div></div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);opacity:0.4;">
+          <div style="display:flex;gap:10px;"><div><div style="font-weight:600;color:#4a5240;">Limpieza Profunda</div><div style="color:#9a9a7a;font-size:10px;">28 feb · 11:30</div></div></div>
+        </div>
+        <!-- Modal overlay -->
+        <div style="position:absolute;top:10px;left:10px;right:10px;background:white;border-radius:12px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,0.18);border:1px solid #f0ece2;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:700;color:#4a5240;font-size:13px;">Facial Hidratante</div>
+            <span style="color:#9a9a7a;font-size:14px;">✕</span>
+          </div>
+          <div style="font-size:10px;color:#9a9a7a;margin-bottom:8px;">12 mar 2026 · 10:00 · Completada</div>
+          <div style="font-size:10px;color:#7a7a5a;background:#faf8f3;border-radius:6px;padding:8px;line-height:1.6;">
+            📝 Piel reactiva al inicio, se calmó bien con la mascarilla de centella. Recomendar SPF diario.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Mini modal</h3>
+      <p>Click en la tarjeta abre un modal pequeño con los detalles completos: fecha, hora, servicio, status y notas.</p>
+    </div>
+  </div>
+
+</div>

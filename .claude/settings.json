@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"📋 NOTION — ¿Actualizaste la documentación?\\n\\nSchema Prisma → 03 — Schema de BD\\nNueva ruta/página → 00 — Contexto & Stack\\nFase del chunk completada → 02 — Chunk Activo\\nChunk terminado → 01 — Roadmap\\nStack o decisión nueva → 00 — Contexto & Stack\\nDatos de dominio → 04 — Referencia de Dominio\"}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

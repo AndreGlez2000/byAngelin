@@ -29,7 +29,7 @@ export default function LoginPage() {
     <div className="h-screen flex overflow-hidden">
       {/* Left brand panel */}
       <div className="w-2/5 bg-olive-dark flex flex-col items-center justify-center p-12 shrink-0">
-        <div className="font-script text-8xl text-white/90 leading-none mb-4">Ae</div>
+        <div className="font-script text-8xl text-white/90 leading-none mb-4">AE</div>
         <div className="font-display text-xl text-white/75 italic tracking-wide">Angelin Esthetician</div>
         <div className="text-white/35 text-xs mt-1 tracking-widest uppercase">Facial &amp; Skincare Studio</div>
         <div className="mt-12 text-white/25 text-xs text-center">
