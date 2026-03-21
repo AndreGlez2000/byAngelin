@@ -305,7 +305,7 @@ export default function ClientDetailPage() {
           {client.skinProfile ? (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[10px] text-olive/50 uppercase tracking-widest">Análisis de Piel</h3>
+                <h3 className="font-display text-base text-olive italic">Análisis de Piel</h3>
                 <button onClick={openSkinModal}>
                   <Pencil size={11} className="text-olive/30 hover:text-olive/60" />
                 </button>
@@ -325,7 +325,7 @@ export default function ClientDetailPage() {
             </div>
           ) : (
             <div>
-              <h3 className="text-[10px] text-olive/50 uppercase tracking-widest mb-2">Análisis de Piel</h3>
+              <h3 className="font-display text-base text-olive italic mb-2">Análisis de Piel</h3>
               <button
                 onClick={openSkinModal}
                 className="w-full text-xs text-blossom-dark border border-dashed border-blossom/40 rounded-lg py-2.5 hover:bg-blossom/5 transition-colors"
