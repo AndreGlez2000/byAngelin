@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { CalendarDays, Users, Sparkles, LayoutDashboard, Package } from 'lucide-react'
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const path = usePathname()
   return (
     <aside className="w-52 bg-olive-dark min-h-screen flex flex-col shrink-0">
@@ -16,11 +16,11 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-0.5">
-        <NavItem href="/"          icon={LayoutDashboard} label="Inicio"    active={path === '/'} />
-        <NavItem href="/agenda"    icon={CalendarDays}    label="Agenda"    active={path.startsWith('/agenda')} />
-        <NavItem href="/clientes"  icon={Users}           label="Clientas"  active={path.startsWith('/clientes')} />
-        <NavItem href="/servicios"   icon={Sparkles}        label="Servicios"  active={path.startsWith('/servicios')} />
-        <NavItem href="/inventario"  icon={Package}         label="Inventario" active={path.startsWith('/inventario')} />
+        <NavItem href="/"          icon={LayoutDashboard} label="Inicio"    active={path === '/'}                    onClose={onClose} />
+        <NavItem href="/agenda"    icon={CalendarDays}    label="Agenda"    active={path.startsWith('/agenda')}      onClose={onClose} />
+        <NavItem href="/clientes"  icon={Users}           label="Clientas"  active={path.startsWith('/clientes')}    onClose={onClose} />
+        <NavItem href="/servicios"   icon={Sparkles}        label="Servicios"  active={path.startsWith('/servicios')}  onClose={onClose} />
+        <NavItem href="/inventario"  icon={Package}         label="Inventario" active={path.startsWith('/inventario')} onClose={onClose} />
       </nav>
 
       {/* User */}
@@ -40,13 +40,14 @@ export default function Sidebar() {
 }
 
 function NavItem({
-  href, icon: Icon, label, active,
+  href, icon: Icon, label, active, onClose,
 }: {
-  href: string; icon: React.ElementType; label: string; active: boolean
+  href: string; icon: React.ElementType; label: string; active: boolean; onClose?: () => void
 }) {
   return (
     <Link
       href={href}
+      onClick={onClose}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
         active ? 'bg-white/12 text-white' : 'text-white/50 hover:bg-white/6 hover:text-white/80'
       }`}
