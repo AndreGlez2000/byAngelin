@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, FileText } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, FileText, Pencil, Trash2 } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileDayView } from './_components/MobileDayView'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Client = { id: string; name: string; phone: string }
 type Service = { id: string; name: string; category: string; duration: string; price: string }
@@ -66,6 +67,10 @@ export default function AgendaPage() {
   const [form, setForm] = useState({ clientId: '', service: '', customService: '', date: '', time: '', sessionNotes: '' })
   const [saving, setSaving] = useState(false)
   const [payModal, setPayModal] = useState<PayModal | null>(null)
+  const [editingAppt, setEditingAppt] = useState<Appointment | null>(null)
+  const [editForm, setEditForm] = useState({ service: '', customService: '', date: '', time: '', status: 'CONFIRMED' as Appointment['status'], sessionNotes: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null)
 
   const weekEnd = addDays(weekStart, 6)
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -116,6 +121,75 @@ export default function AgendaPage() {
     setShowModal(false)
     setForm({ clientId: '', service: '', customService: '', date: '', time: '', sessionNotes: '' })
     setSaving(false)
+    fetchAppointments()
+  }
+
+  function openEdit(a: Appointment) {
+    const d = new Date(a.date)
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    const isCustom = !services.find(s => s.name === a.service)
+    setEditingAppt(a)
+    setEditForm({
+      service: isCustom ? '__custom__' : a.service,
+      customService: isCustom ? a.service : '',
+      date: local.toISOString().slice(0, 10),
+      time: local.toISOString().slice(11, 16),
+      status: a.status,
+      sessionNotes: a.sessionNotes ?? '',
+    })
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingAppt) return
+    setSavingEdit(true)
+    const serviceName = editForm.service === '__custom__' ? editForm.customService : editForm.service
+    const dateTime = `${editForm.date}T${editForm.time}`
+    const wasCompleted = editForm.status === 'COMPLETED' && editingAppt.status !== 'COMPLETED'
+    if (wasCompleted) {
+      const svc = services.find(s => s.name === serviceName)
+      const numeric = svc ? parseFloat(svc.price.replace(/[^0-9.]/g, '')) : NaN
+      setPayModal({
+        id: editingAppt.id,
+        serviceName,
+        pricePaid: Number.isFinite(numeric) ? String(numeric) : '',
+        paymentMethod: 'Efectivo',
+        sessionNotes: editForm.sessionNotes,
+      })
+      // also patch service/date while at it
+      await fetch(`/api/appointments/${editingAppt.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: serviceName, date: new Date(dateTime).toISOString() }),
+      })
+      setSavingEdit(false)
+      setEditingAppt(null)
+      return
+    }
+    await fetch(`/api/appointments/${editingAppt.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service: serviceName,
+        date: new Date(dateTime).toISOString(),
+        status: editForm.status,
+        sessionNotes: editForm.sessionNotes || null,
+      }),
+    })
+    setSavingEdit(false)
+    setEditingAppt(null)
+    fetchAppointments()
+  }
+
+  async function handleDelete(id: string) {
+    const appt = appointments.find(a => a.id === id)
+    setConfirmDelete({ id, label: appt ? `${appt.service} · ${appt.client.name}` : 'esta cita' })
+  }
+
+  async function confirmDoDelete() {
+    if (!confirmDelete) return
+    await fetch(`/api/appointments/${confirmDelete.id}`, { method: 'DELETE' })
+    setConfirmDelete(null)
     fetchAppointments()
   }
 
@@ -265,9 +339,25 @@ export default function AgendaPage() {
                         >
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="text-[10px] text-olive/50 font-mono">{time}</span>
-                            {a.sessionNotes && (
-                              <FileText size={10} className="text-olive/40 shrink-0" />
-                            )}
+                            <div className="flex items-center gap-0.5">
+                              {a.sessionNotes && (
+                                <FileText size={10} className="text-olive/40 shrink-0" />
+                              )}
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={e => { e.stopPropagation(); openEdit(a) }}
+                                  className="p-0.5 rounded hover:bg-white/60 text-olive/50 hover:text-olive transition-colors"
+                                >
+                                  <Pencil size={9} />
+                                </button>
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleDelete(a.id) }}
+                                  className="p-0.5 rounded hover:bg-white/60 text-olive/40 hover:text-blossom-dark transition-colors"
+                                >
+                                  <Trash2 size={9} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                           <div className="text-xs font-medium text-olive leading-tight truncate">{a.service}</div>
                           <div className="text-[10px] text-olive/60 truncate mt-0.5">{a.client.name}</div>
@@ -313,6 +403,14 @@ export default function AgendaPage() {
           onToday={() => setSelectedDay(new Date())}
           onNewAppointment={() => setShowModal(true)}
           onChangeStatus={changeStatus}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`¿Eliminar "${confirmDelete.label}"? Esta acción no se puede deshacer.`}
+          onConfirm={confirmDoDelete}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
 
@@ -391,6 +489,115 @@ export default function AgendaPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar cita */}
+      {editingAppt && (
+        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-2xl text-olive italic">Editar Cita</h2>
+              <button onClick={() => setEditingAppt(null)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
+            </div>
+            <form onSubmit={handleEdit} className="flex flex-col gap-3">
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Clienta</label>
+                <p className="text-sm text-olive font-medium px-3 py-2.5 bg-parchment/60 rounded-lg">{editingAppt.client.name}</p>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Servicio</label>
+                <select
+                  required
+                  value={editForm.service}
+                  onChange={e => setEditForm(f => ({ ...f, service: e.target.value, customService: '' }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
+                >
+                  {['Facial', 'Extra / Complemento'].map(cat => {
+                    const catServices = services.filter(s => s.category === cat)
+                    if (catServices.length === 0) return null
+                    return (
+                      <optgroup key={cat} label={cat}>
+                        {catServices.map(s => (
+                          <option key={s.id} value={s.name}>{s.name} · {s.duration} · {s.price}</option>
+                        ))}
+                      </optgroup>
+                    )
+                  })}
+                  <option value="__custom__">Otro (escribir manualmente)…</option>
+                </select>
+                {editForm.service === '__custom__' && (
+                  <input
+                    required
+                    placeholder="Nombre del servicio…"
+                    value={editForm.customService}
+                    onChange={e => setEditForm(f => ({ ...f, customService: e.target.value }))}
+                    className="mt-1.5 w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Fecha</label>
+                  <input
+                    required
+                    type="date"
+                    value={editForm.date}
+                    onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Hora</label>
+                  <input
+                    required
+                    type="time"
+                    value={editForm.time}
+                    onChange={e => setEditForm(f => ({ ...f, time: e.target.value }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Estado</label>
+                <select
+                  value={editForm.status}
+                  onChange={e => setEditForm(f => ({ ...f, status: e.target.value as Appointment['status'] }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                >
+                  <option value="CONFIRMED">Confirmada</option>
+                  <option value="COMPLETED">Completada</option>
+                  <option value="CANCELLED">Cancelada</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Notas (opcional)</label>
+                <textarea
+                  placeholder="Indicaciones, observaciones…"
+                  value={editForm.sessionNotes}
+                  onChange={e => setEditForm(f => ({ ...f, sessionNotes: e.target.value }))}
+                  rows={2}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditingAppt(null)}
+                  className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 bg-blossom-dark text-white text-sm py-2.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-50"
+                >
+                  {savingEdit ? 'Guardando…' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

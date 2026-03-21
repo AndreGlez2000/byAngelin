@@ -78,7 +78,7 @@ export default function DashboardPage() {
     <div className="px-4 py-4 md:px-6 md:py-6 space-y-4 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="font-display text-3xl text-olive italic capitalize">{monthLabel}</h1>
+        <h1 className="font-display text-3xl text-olive italic font-bold capitalize">{monthLabel}</h1>
         <p className="text-sm text-olive/40 mt-0.5">Resumen del negocio</p>
       </div>
 
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           {metrics.todayAppointments.length === 0 ? (
             <p className="px-4 py-6 text-sm text-olive/40 text-center">Ninguna cita hoy.</p>
           ) : (
-            <div className="divide-y divide-olive/5">
+            <div className="divide-y divide-olive/5 max-h-64 overflow-y-auto">
               {metrics.todayAppointments.map((a, i) => {
                 const time = new Date(a.date).toLocaleTimeString('es-MX', {
                   hour: '2-digit', minute: '2-digit', hour12: false,
@@ -198,10 +198,10 @@ export default function DashboardPage() {
       {metrics.revenueByService.length > 0 && (
         <div className="bg-white rounded-xl shadow-card overflow-hidden">
           <div className="px-5 py-4 border-b border-olive/8">
-            <h2 className="text-sm font-semibold text-olive">Top servicios · {monthLabel}</h2>
+            <h2 className="text-sm font-semibold text-olive">Top servicios · histórico</h2>
           </div>
-          <div className="divide-y divide-olive/5">
-            {metrics.revenueByService.slice(0, 8).map(item => {
+          <div className="divide-y divide-olive/5 max-h-64 overflow-y-auto">
+            {metrics.revenueByService.map(item => {
               const maxRevenue = metrics.revenueByService[0].revenue
               const pct = maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0
               return (

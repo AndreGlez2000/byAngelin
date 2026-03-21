@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Pencil, ClipboardList, FileText } from 'lucide-react'
+import { Plus, Pencil, ClipboardList, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type SkinProfile = {
   id: string; fecha: string; edad: number | null
@@ -15,12 +16,14 @@ type SkinProfile = {
 }
 type Appointment = {
   id: string; service: string; date: string
-  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'; sessionNotes: string | null
+  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  sessionNotes: string | null; pricePaid: number | null; paymentMethod: string | null
 }
 type Client = {
   id: string; name: string; phone: string; email: string | null
   skinProfile: SkinProfile | null; appointments: Appointment[]
 }
+type Service = { id: string; name: string; price: number }
 
 const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_COLOR = {
@@ -42,6 +45,12 @@ type SkinForm = {
   pigmentaciones: string; vitalidadOxigenacion: string; habitos: string; embarazo: string
   exposicionSolar: string; deporte: string; enfermedades: string; medicamentos: string
   apoyoEnCasa: string; comentarios: string
+}
+
+type ApptForm = {
+  service: string; date: string
+  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  pricePaid: string; sessionNotes: string
 }
 
 function toForm(p: SkinProfile | null): SkinForm {
@@ -68,27 +77,38 @@ function toForm(p: SkinProfile | null): SkinForm {
   }
 }
 
+function toLocalDatetimeStr(iso: string) {
+  const d = new Date(iso)
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [client, setClient] = useState<Client | null>(null)
-  const [showNovaCita, setShowNovaCita] = useState(false)
+  const [services, setServices] = useState<Service[]>([])
   const [showSkinModal, setShowSkinModal] = useState(false)
   const [skinForm, setSkinForm] = useState<SkinForm>(toForm(null))
   const [savingSkin, setSavingSkin] = useState(false)
-  const [editingNotes, setEditingNotes] = useState<Map<string, string>>(new Map())
   const [showEditClient, setShowEditClient] = useState(false)
   const [editClientForm, setEditClientForm] = useState({ name: '', phone: '', email: '' })
   const [savingClient, setSavingClient] = useState(false)
+  const [showApptModal, setShowApptModal] = useState(false)
+  const [editingAppt, setEditingAppt] = useState<Appointment | null>(null)
+  const [apptForm, setApptForm] = useState<ApptForm>({ service: '', date: '', status: 'CONFIRMED', pricePaid: '', sessionNotes: '' })
+  const [savingAppt, setSavingAppt] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null)
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${id}`)
     if (!res.ok) { router.push('/clientes'); return }
-    const data: Client = await res.json()
-    setClient(data)
+    setClient(await res.json())
   }
 
-  useEffect(() => { loadClient() }, [id])
+  useEffect(() => {
+    loadClient()
+    fetch('/api/services?active=true').then(r => r.json()).then(setServices)
+  }, [id])
 
   function openEditClient() {
     if (!client) return
@@ -123,10 +143,7 @@ export default function ClientDetailPage() {
     e.preventDefault()
     if (!client) return
     setSavingSkin(true)
-    const payload = {
-      ...skinForm,
-      edad: skinForm.edad !== '' ? Number(skinForm.edad) : null,
-    }
+    const payload = { ...skinForm, edad: skinForm.edad !== '' ? Number(skinForm.edad) : null }
     const method = client.skinProfile ? 'PATCH' : 'POST'
     await fetch(`/api/clients/${client.id}/skin-profile`, {
       method,
@@ -142,32 +159,70 @@ export default function ClientDetailPage() {
     setSkinForm(f => ({ ...f, [key]: value }))
   }
 
-  function openEdit(id: string, current: string | null) {
-    setEditingNotes(prev => new Map(prev).set(id, current ?? ''))
-  }
-
-  function cancelEdit(id: string) {
-    setEditingNotes(prev => { const n = new Map(prev); n.delete(id); return n })
-  }
-
-  async function saveNote(id: string) {
-    const text = editingNotes.get(id) ?? ''
-    await fetch(`/api/appointments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionNotes: text.trim() || null }),
+  function openNewAppt() {
+    const now = new Date()
+    now.setMinutes(0, 0, 0)
+    setEditingAppt(null)
+    setApptForm({
+      service: services[0]?.name ?? '',
+      date: toLocalDatetimeStr(now.toISOString()),
+      status: 'CONFIRMED',
+      pricePaid: '',
+      sessionNotes: '',
     })
-    cancelEdit(id)
+    setShowApptModal(true)
+  }
+
+  function openEditAppt(a: Appointment) {
+    setEditingAppt(a)
+    setApptForm({
+      service: a.service,
+      date: toLocalDatetimeStr(a.date),
+      status: a.status,
+      pricePaid: a.pricePaid != null ? String(a.pricePaid) : '',
+      sessionNotes: a.sessionNotes ?? '',
+    })
+    setShowApptModal(true)
+  }
+
+  async function handleApptSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!client) return
+    setSavingAppt(true)
+    const payload = {
+      service: apptForm.service,
+      date: new Date(apptForm.date).toISOString(),
+      status: apptForm.status,
+      pricePaid: apptForm.pricePaid !== '' ? Number(apptForm.pricePaid) : null,
+      sessionNotes: apptForm.sessionNotes.trim() || null,
+    }
+    if (editingAppt) {
+      await fetch(`/api/appointments/${editingAppt.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } else {
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, clientId: client.id }),
+      })
+    }
+    setSavingAppt(false)
+    setShowApptModal(false)
     loadClient()
   }
 
-  async function deleteNote(id: string) {
-    await fetch(`/api/appointments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionNotes: null }),
-    })
-    cancelEdit(id)
+  function handleApptDelete(apptId: string) {
+    const appt = client?.appointments.find(a => a.id === apptId)
+    setConfirmDelete({ id: apptId, label: appt?.service ?? 'esta cita' })
+  }
+
+  async function confirmDoDelete() {
+    if (!confirmDelete) return
+    await fetch(`/api/appointments/${confirmDelete.id}`, { method: 'DELETE' })
+    setConfirmDelete(null)
     loadClient()
   }
 
@@ -206,7 +261,7 @@ export default function ClientDetailPage() {
             {client.skinProfile ? 'Editar Ficha' : 'Crear Ficha de Piel'}
           </button>
           <button
-            onClick={() => setShowNovaCita(true)}
+            onClick={openNewAppt}
             className="flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
           >
             <Plus size={14} />
@@ -219,7 +274,6 @@ export default function ClientDetailPage() {
       <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-hidden overflow-y-auto">
         {/* Left panel */}
         <div className="w-full md:w-52 shrink-0 border-b md:border-b-0 md:border-r border-olive/10 overflow-y-auto bg-white/30 p-4 space-y-4">
-          {/* Client card */}
           <div className="text-center pt-2">
             <div className="w-14 h-14 rounded-full bg-blossom/25 flex items-center justify-center mx-auto mb-2">
               <span className="text-blossom-dark font-semibold text-xl">{client.name.charAt(0)}</span>
@@ -237,7 +291,6 @@ export default function ClientDetailPage() {
             }
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-2 text-center">
             <div className="bg-parchment rounded-lg py-2">
               <div className="text-xl font-semibold text-olive">{stats.citas}</div>
@@ -249,7 +302,6 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
-          {/* Skin profile summary */}
           {client.skinProfile ? (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -296,16 +348,8 @@ export default function ClientDetailPage() {
             <div className="space-y-3">
               {client.appointments.map(a => {
                 const d = new Date(a.date)
-                const hasNotes = !!a.sessionNotes
-                const isEditing = editingNotes.has(a.id)
-                const editText = editingNotes.get(a.id) ?? ''
                 return (
-                  <div
-                    key={a.id}
-                    onClick={() => !isEditing && openEdit(a.id, a.sessionNotes)}
-                    className="bg-white rounded-xl shadow-card p-4 transition-shadow cursor-pointer hover:shadow-md"
-                  >
-                    {/* Header row */}
+                  <div key={a.id} className="bg-white rounded-xl shadow-card p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="text-center shrink-0 w-10">
@@ -315,62 +359,37 @@ export default function ClientDetailPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-olive text-sm">{a.service}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <p className="text-xs text-olive/50">
-                              {d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                            {hasNotes && !isEditing && (
-                              <FileText size={10} className="text-olive/35" />
+                          <p className="text-xs text-olive/50 mt-0.5">
+                            {d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                            {a.pricePaid != null && (
+                              <span className="ml-2 text-moss font-medium">
+                                ${a.pricePaid.toLocaleString('es-MX')}
+                              </span>
                             )}
-                          </div>
-                          {/* Note preview when collapsed */}
-                          {hasNotes && !isEditing && (
-                            <p className="text-xs text-olive/50 mt-1 truncate">{a.sessionNotes}</p>
+                          </p>
+                          {a.sessionNotes && (
+                            <p className="text-xs text-olive/40 mt-1 italic line-clamp-2">{a.sessionNotes}</p>
                           )}
                         </div>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 font-medium ${STATUS_COLOR[a.status]}`}>
-                        {STATUS_LABEL[a.status]}
-                      </span>
-                    </div>
-
-                    {/* Inline edit area */}
-                    {isEditing && (
-                      <div className="mt-3 pt-3 border-t border-olive/8" onClick={e => e.stopPropagation()}>
-                        <textarea
-                          autoFocus
-                          value={editText}
-                          onChange={e => setEditingNotes(prev => new Map(prev).set(a.id, e.target.value))}
-                          placeholder="Escribe una nota de sesión…"
-                          rows={3}
-                          className="w-full border border-olive/20 rounded-lg px-3 py-2 text-xs text-olive focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
-                        />
-                        <div className="flex items-center justify-between mt-2">
-                          {hasNotes ? (
-                            <button
-                              onClick={() => deleteNote(a.id)}
-                              className="text-xs text-red-400 hover:text-red-600 transition-colors"
-                            >
-                              Eliminar
-                            </button>
-                          ) : <div />}
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => cancelEdit(a.id)}
-                              className="text-xs border border-olive/20 text-olive px-3 py-1.5 rounded-lg hover:bg-olive/5 transition-colors"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => saveNote(a.id)}
-                              className="text-xs bg-olive-dark text-white px-3 py-1.5 rounded-lg hover:bg-olive transition-colors"
-                            >
-                              Guardar
-                            </button>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLOR[a.status]}`}>
+                          {STATUS_LABEL[a.status]}
+                        </span>
+                        <button
+                          onClick={() => openEditAppt(a)}
+                          className="p-1.5 rounded hover:bg-olive/8 text-olive/35 hover:text-olive transition-colors"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleApptDelete(a.id)}
+                          className="p-1.5 rounded hover:bg-blossom/15 text-olive/25 hover:text-blossom-dark transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )
               })}
@@ -378,6 +397,14 @@ export default function ClientDetailPage() {
           )}
         </div>
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`¿Eliminar "${confirmDelete.label}"? Esta acción no se puede deshacer.`}
+          onConfirm={confirmDoDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {/* Modal: Editar Clienta */}
       {showEditClient && (
@@ -424,15 +451,102 @@ export default function ClientDetailPage() {
         </div>
       )}
 
-      {/* Modal: Nueva Cita */}
-      {showNovaCita && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4">
-          <div className="bg-white md:rounded-2xl shadow-modal p-5 md:p-6 w-full h-full md:h-auto md:max-w-xs md:mx-4 overflow-y-auto text-center">
-            <p className="text-olive text-sm mb-4">¿Ir a la agenda para agendar una cita para <strong>{client.name}</strong>?</p>
-            <div className="flex gap-2">
-              <button onClick={() => setShowNovaCita(false)} className="flex-1 border border-olive/20 text-olive text-sm py-2 rounded-lg hover:bg-olive/5">Cancelar</button>
-              <button onClick={() => router.push('/agenda')} className="flex-1 bg-blossom-dark text-white text-sm py-2 rounded-lg hover:bg-blossom">Ir a Agenda</button>
+      {/* Modal: Crear / Editar Cita */}
+      {showApptModal && (
+        <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl rounded-t-2xl shadow-modal p-6 w-full md:max-w-sm h-auto md:h-auto overflow-y-auto max-h-[90dvh]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl text-olive italic">
+                {editingAppt ? 'Editar Cita' : 'Nueva Cita'}
+              </h2>
+              <button onClick={() => setShowApptModal(false)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
             </div>
+            <form onSubmit={handleApptSave} className="space-y-3">
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Servicio</label>
+                {services.length > 0 ? (
+                  <select
+                    value={apptForm.service}
+                    onChange={e => setApptForm(f => ({ ...f, service: e.target.value }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  >
+                    {services.map(s => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    required
+                    value={apptForm.service}
+                    onChange={e => setApptForm(f => ({ ...f, service: e.target.value }))}
+                    placeholder="Nombre del servicio"
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Fecha y hora</label>
+                <input
+                  required
+                  type="datetime-local"
+                  value={apptForm.date}
+                  onChange={e => setApptForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Estado</label>
+                  <select
+                    value={apptForm.status}
+                    onChange={e => setApptForm(f => ({ ...f, status: e.target.value as ApptForm['status'] }))}
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  >
+                    <option value="CONFIRMED">Confirmada</option>
+                    <option value="COMPLETED">Completada</option>
+                    <option value="CANCELLED">Cancelada</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Precio pagado (MXN)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={apptForm.pricePaid}
+                    onChange={e => setApptForm(f => ({ ...f, pricePaid: e.target.value }))}
+                    placeholder="opcional"
+                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Notas de sesión</label>
+                <textarea
+                  value={apptForm.sessionNotes}
+                  onChange={e => setApptForm(f => ({ ...f, sessionNotes: e.target.value }))}
+                  placeholder="Opcional…"
+                  rows={3}
+                  className="w-full border border-olive/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowApptModal(false)}
+                  className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAppt}
+                  className="flex-1 bg-blossom-dark text-white text-sm py-2.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-50"
+                >
+                  {savingAppt ? 'Guardando…' : editingAppt ? 'Guardar Cambios' : 'Crear Cita'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -441,7 +555,6 @@ export default function ClientDetailPage() {
       {showSkinModal && (
         <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
           <div className="bg-white md:rounded-2xl shadow-modal w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] md:mx-4 flex flex-col overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-olive/10 shrink-0">
               <h2 className="font-display text-2xl text-olive italic">
                 {client.skinProfile ? 'Editar Ficha de Piel' : 'Nueva Ficha de Piel'}
@@ -449,11 +562,8 @@ export default function ClientDetailPage() {
               <button onClick={() => setShowSkinModal(false)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
             </div>
 
-            {/* Scrollable form */}
             <form onSubmit={handleSkinSave} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-
-                {/* General */}
                 <section>
                   <h3 className="text-[10px] text-olive/40 uppercase tracking-widest font-medium mb-3">General</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -482,7 +592,6 @@ export default function ClientDetailPage() {
                   </div>
                 </section>
 
-                {/* Análisis de piel */}
                 <section>
                   <h3 className="text-[10px] text-olive/40 uppercase tracking-widest font-medium mb-3">Análisis de Piel</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -511,7 +620,6 @@ export default function ClientDetailPage() {
                   </div>
                 </section>
 
-                {/* Estilo de vida */}
                 <section>
                   <h3 className="text-[10px] text-olive/40 uppercase tracking-widest font-medium mb-3">Estilo de Vida</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -536,7 +644,6 @@ export default function ClientDetailPage() {
                   </div>
                 </section>
 
-                {/* Extras */}
                 <section>
                   <h3 className="text-[10px] text-olive/40 uppercase tracking-widest font-medium mb-3">Extras</h3>
                   <div className="space-y-3">
@@ -563,7 +670,6 @@ export default function ClientDetailPage() {
                 </section>
               </div>
 
-              {/* Footer */}
               <div className="px-6 py-4 border-t border-olive/10 flex gap-2 shrink-0">
                 <button
                   type="button"

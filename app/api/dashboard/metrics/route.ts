@@ -35,9 +35,13 @@ export async function GET() {
   const revenueThisMonth = completedThisMonth.reduce((sum, a) => sum + (a.pricePaid ?? 0), 0)
   const revenueLastMonth = completedLastMonth.reduce((sum, a) => sum + (a.pricePaid ?? 0), 0)
 
-  // Ingresos por servicio este mes
+  // Ingresos por servicio — histórico total
+  const allCompleted = await db.appointment.findMany({
+    where: { status: 'COMPLETED' },
+    select: { pricePaid: true, service: true },
+  })
   const revenueByService: Record<string, { revenue: number; count: number }> = {}
-  for (const appt of completedThisMonth) {
+  for (const appt of allCompleted) {
     const key = appt.service
     if (!revenueByService[key]) revenueByService[key] = { revenue: 0, count: 0 }
     revenueByService[key].revenue += appt.pricePaid ?? 0

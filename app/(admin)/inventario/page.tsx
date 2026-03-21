@@ -18,7 +18,6 @@ const UNITS = ['ml', 'gr', 'aplicacion']
 const emptyForm = {
   name: '', brand: '', unit: 'ml',
   capacityPerUnit: '', costPerUnit: '',
-  lowStockAlert: '1', stock: '0',
 }
 
 function mxn(n: number) {
@@ -71,8 +70,6 @@ export default function InventarioPage() {
       unit: p.unit,
       capacityPerUnit: String(p.capacityPerUnit),
       costPerUnit: String(p.costPerUnit),
-      lowStockAlert: String(p.lowStockAlert),
-      stock: '0',
     })
     setShowModal(true)
   }
@@ -80,14 +77,15 @@ export default function InventarioPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    const capacity = Number(form.capacityPerUnit)
     const payload = {
       name: form.name,
       brand: form.brand || null,
       unit: form.unit,
-      capacityPerUnit: Number(form.capacityPerUnit),
+      capacityPerUnit: capacity,
       costPerUnit: Number(form.costPerUnit),
-      lowStockAlert: Number(form.lowStockAlert),
-      ...(!editing && { stock: Number(form.stock) }),
+      lowStockAlert: Math.round(capacity * 0.1 * 100) / 100,
+      ...(!editing && { stock: capacity }),
     }
     if (editing) {
       await fetch(`/api/inventory/${editing.id}`, {
@@ -144,7 +142,7 @@ export default function InventarioPage() {
       {/* Top bar */}
       <div className="px-4 md:px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
         <div>
-          <h1 className="font-display text-2xl text-olive italic">Inventario</h1>
+          <h1 className="font-display text-2xl text-olive italic font-bold">Inventario</h1>
           <p className="text-xs text-olive/40 mt-0.5">
             {products.length} productos
             {lowCount > 0 && (
@@ -165,17 +163,18 @@ export default function InventarioPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 p-6 flex flex-col gap-6 min-h-0 overflow-hidden">
         {/* En stock */}
         {inStock.length > 0 && (
-          <div>
+          <div className="flex flex-col flex-1 min-h-0">
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               En stock · {inStock.length}
             </h2>
             {/* Desktop table */}
-            <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
+            <div className="hidden md:block bg-white rounded-xl shadow-card flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-y-auto flex-1">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-olive/8">
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Producto</th>
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Stock</th>
@@ -237,6 +236,7 @@ export default function InventarioPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
             {/* Mobile card list */}
             <div className="md:hidden bg-white rounded-xl shadow-card divide-y divide-olive/8">
@@ -299,14 +299,15 @@ export default function InventarioPage() {
 
         {/* Sin stock */}
         {outOfStock.length > 0 && (
-          <div>
+          <div className="flex flex-col flex-1 min-h-0">
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               Sin stock · Por comprar · {outOfStock.length}
             </h2>
             {/* Desktop table */}
-            <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
+            <div className="hidden md:block bg-white rounded-xl shadow-card flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-y-auto flex-1">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-olive/8">
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Producto</th>
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Unidad</th>
@@ -352,6 +353,7 @@ export default function InventarioPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
             {/* Mobile card list */}
             <div className="md:hidden bg-white rounded-xl shadow-card divide-y divide-olive/8 opacity-70">
@@ -478,39 +480,6 @@ export default function InventarioPage() {
                     className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
-                    Alerta stock bajo ({form.unit})
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={form.lowStockAlert}
-                    onChange={e => setForm(f => ({ ...f, lowStockAlert: e.target.value }))}
-                    placeholder="Ej. 12"
-                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
-                  />
-                </div>
-                {!editing && (
-                  <div>
-                    <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
-                      Stock inicial ({form.unit})
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={form.stock}
-                      onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
-                      placeholder="0"
-                      className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
-                    />
-                  </div>
-                )}
               </div>
               <div className="flex gap-2 pt-1">
                 <button

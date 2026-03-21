@@ -53,7 +53,7 @@ export default function ClientesPage() {
       {/* Header */}
       <div className="px-4 md:px-6 py-3 md:py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
         <div>
-          <h1 className="font-display text-2xl text-olive italic">Mis Clientes</h1>
+          <h1 className="font-display text-2xl text-olive italic font-bold">Mis Clientes</h1>
           <p className="text-xs text-olive/40 mt-0.5">{clients.length} clientas registradas</p>
         </div>
         <button
@@ -65,9 +65,9 @@ export default function ClientesPage() {
         </button>
       </div>
 
-      <div className="px-4 md:px-6 py-3 md:py-4 flex-1 overflow-auto">
+      <div className="px-4 md:px-6 py-3 md:py-4 flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Search */}
-        <div className="relative mb-3">
+        <div className="relative mb-3 shrink-0">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-olive/40" />
           <input
             value={search}
@@ -78,7 +78,7 @@ export default function ClientesPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-1 mb-4">
+        <div className="flex gap-1 mb-4 shrink-0">
           {(['todas', 'activas', 'inactivas'] as Filter[]).map(f => (
             <button
               key={f}
@@ -95,9 +95,10 @@ export default function ClientesPage() {
         </div>
 
         {/* Table — hidden on mobile */}
-        <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
+        <div className="hidden md:block bg-white rounded-xl shadow-card flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-y-auto flex-1">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-olive/10 text-left">
                 <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Nombre</th>
                 <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Teléfono</th>
@@ -165,6 +166,7 @@ export default function ClientesPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Mobile card list — hidden on desktop */}
