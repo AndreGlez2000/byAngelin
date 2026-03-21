@@ -51,7 +51,7 @@ export default function ClientesPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
         <div>
           <h1 className="font-display text-2xl text-olive italic">Mis Clientes</h1>
           <p className="text-xs text-olive/40 mt-0.5">{clients.length} clientas registradas</p>
@@ -65,7 +65,7 @@ export default function ClientesPage() {
         </button>
       </div>
 
-      <div className="px-6 py-4 flex-1 overflow-auto">
+      <div className="px-4 md:px-6 py-3 md:py-4 flex-1 overflow-auto">
         {/* Search */}
         <div className="relative mb-3">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-olive/40" />
@@ -94,8 +94,8 @@ export default function ClientesPage() {
           ))}
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl shadow-card overflow-hidden">
+        {/* Table — hidden on mobile */}
+        <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-olive/10 text-left">
@@ -165,6 +165,53 @@ export default function ClientesPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list — hidden on desktop */}
+        <div className="md:hidden divide-y divide-olive/8">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-sm text-olive/40">Sin resultados</p>
+          ) : (
+            filtered.map(c => {
+              const activa = isActiva(c)
+              const lastVisit = c.appointments[0] ? formatDate(c.appointments[0].date) : '—'
+              const skinType = c.skinProfile?.fototipo || c.skinProfile?.biotipo || null
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => router.push(`/clientes/${c.id}`)}
+                  className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-olive/4 active:bg-olive/8"
+                >
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-blossom/25 flex items-center justify-center shrink-0">
+                    <span className="text-blossom-dark font-semibold text-sm">
+                      {c.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-olive truncate">{c.name}</div>
+                    <div className="text-xs text-olive/50 mt-0.5">{c.phone}</div>
+                    {skinType && (
+                      <div className="text-xs text-olive/40">{skinType}</div>
+                    )}
+                  </div>
+                  {/* Right side */}
+                  <div className="text-right shrink-0">
+                    <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      activa
+                        ? 'bg-moss/20 text-moss'
+                        : 'bg-olive/10 text-olive/50'
+                    }`}>
+                      {activa ? 'Activa' : 'Inactiva'}
+                    </div>
+                    <div className="text-xs text-olive/40 mt-1">{lastVisit}</div>
+                  </div>
+                  <ChevronRight size={14} className="text-olive/30 shrink-0" />
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
     </div>
