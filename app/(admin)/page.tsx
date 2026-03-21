@@ -66,10 +66,13 @@ export default function DashboardPage() {
   const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
   const now = new Date()
   const monthLabel = MONTHS_LONG[now.getMonth()]
+  const prevMonthLabel = MONTHS_LONG[(now.getMonth() + 11) % 12].slice(0, 3)
 
   const ticketPromedio = metrics.appointmentsThisMonth > 0
     ? Math.round(metrics.revenueThisMonth / metrics.appointmentsThisMonth)
     : 0
+
+  const firstConfirmedIdx = metrics.todayAppointments.findIndex(x => x.status === 'CONFIRMED')
 
   return (
     <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
@@ -84,13 +87,13 @@ export default function DashboardPage() {
         <KpiCard
           label="Ingresos"
           value={mxn(metrics.revenueThisMonth)}
-          sub={`${mxn(metrics.revenueLastMonth)} feb`}
+          sub={`${mxn(metrics.revenueLastMonth)} ${prevMonthLabel}`}
           change={revChange}
         />
         <KpiCard
           label="Citas completadas"
           value={String(metrics.appointmentsThisMonth)}
-          sub={`${metrics.appointmentsLastMonth} feb`}
+          sub={`${metrics.appointmentsLastMonth} ${prevMonthLabel}`}
           change={apptChange}
         />
         <KpiCard
@@ -118,7 +121,7 @@ export default function DashboardPage() {
                 const time = new Date(a.date).toLocaleTimeString('es-MX', {
                   hour: '2-digit', minute: '2-digit', hour12: false,
                 })
-                const isNext = a.status === 'CONFIRMED' && i === metrics.todayAppointments.findIndex(x => x.status === 'CONFIRMED')
+                const isNext = a.status === 'CONFIRMED' && i === firstConfirmedIdx
                 const borderColor =
                   a.status === 'COMPLETED' ? 'border-l-moss' :
                   a.status === 'CANCELLED' ? 'border-l-olive/20' :
