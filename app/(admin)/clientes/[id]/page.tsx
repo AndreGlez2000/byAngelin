@@ -284,10 +284,10 @@ export default function ClientDetailPage() {
                 <Pencil size={11} />
               </button>
             </div>
-            <p className="text-xs text-olive/50 mt-0.5">{client.phone}</p>
+            <p className="text-sm text-olive/70 mt-0.5">{client.phone}</p>
             {client.email
-              ? <p className="text-[10px] text-olive/35 mt-0.5">{client.email}</p>
-              : <button onClick={openEditClient} className="text-[10px] text-blossom-dark/60 hover:text-blossom-dark mt-0.5">+ agregar correo</button>
+              ? <p className="text-xs text-olive/55 mt-0.5">{client.email}</p>
+              : <button onClick={openEditClient} className="text-xs text-blossom-dark/60 hover:text-blossom-dark mt-0.5">+ agregar correo</button>
             }
           </div>
 
@@ -316,8 +316,8 @@ export default function ClientDetailPage() {
                   if (!val) return null
                   return (
                     <div key={key} className="flex justify-between gap-2">
-                      <span className="text-[10px] text-olive/40">{SKIN_LABELS[key]}</span>
-                      <span className="text-[10px] text-olive font-medium text-right">{String(val)}</span>
+                      <span className="text-xs text-olive/60">{SKIN_LABELS[key]}</span>
+                      <span className="text-xs text-olive/85 font-medium text-right">{String(val)}</span>
                     </div>
                   )
                 })}
