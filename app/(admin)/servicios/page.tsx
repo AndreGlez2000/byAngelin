@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, X, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, ToggleLeft, ToggleRight, X, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Product = {
   id: string
@@ -49,6 +50,7 @@ export default function ServiciosPage() {
   const [productLines, setProductLines] = useState<ProductLine[]>([])
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   async function load() {
     const [sRes, pRes] = await Promise.all([fetch('/api/services'), fetch('/api/inventory')])
@@ -120,8 +122,8 @@ export default function ServiciosPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este servicio?')) return
     await fetch(`/api/services/${id}`, { method: 'DELETE' })
+    setConfirmDeleteId(null)
     load()
   }
 
@@ -193,7 +195,7 @@ export default function ServiciosPage() {
                   {items.flatMap((s) => {
                     const isExpanded = expandedId === s.id
                     return [
-                      <tr key={s.id} className={`border-b border-olive/6 ${isExpanded ? '' : 'last:border-b-0'} ${!s.isActive ? 'opacity-45' : ''}`}>
+                      <tr key={s.id} onClick={() => openEdit(s)} className={`border-b border-olive/6 ${isExpanded ? '' : 'last:border-b-0'} ${!s.isActive ? 'opacity-45' : ''} cursor-pointer hover:bg-parchment/50 transition-colors`}>
                         <td className="px-4 py-3">
                           <div className="font-medium text-olive">{s.name}</div>
                           {s.description && (
@@ -222,7 +224,7 @@ export default function ServiciosPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 justify-end">
                             <button
-                              onClick={() => toggleActive(s)}
+                              onClick={e => { e.stopPropagation(); toggleActive(s) }}
                               title={s.isActive ? 'Desactivar' : 'Activar'}
                               className="p-1.5 rounded hover:bg-olive/8 transition-colors"
                             >
@@ -231,10 +233,7 @@ export default function ServiciosPage() {
                                 : <ToggleLeft size={15} className="text-olive/30" />
                               }
                             </button>
-                            <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors">
-                              <Pencil size={13} />
-                            </button>
-                            <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors">
+                            <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }} className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors">
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -266,15 +265,22 @@ export default function ServiciosPage() {
               </div>
               <div className="divide-y divide-olive/8">
                 {items.map(s => (
-                  <div key={s.id} className={`px-4 py-3.5 flex items-center justify-between ${!s.isActive ? 'opacity-45' : ''}`}>
+                  <div
+                    key={s.id}
+                    onClick={() => openEdit(s)}
+                    className={`px-4 py-3.5 flex items-center justify-between cursor-pointer active:opacity-70 transition-opacity ${!s.isActive ? 'opacity-45' : ''}`}
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-olive truncate">{s.name}</div>
                       <div className="text-xs text-olive/50 mt-0.5">{s.duration}</div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="text-sm font-semibold text-olive">{s.price}</div>
-                      <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors">
-                        <Pencil size={13} />
+                      <button
+                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }}
+                        className="p-1.5 -mr-1 text-olive/30 hover:text-blossom-dark active:text-blossom-dark transition-colors"
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -456,6 +462,14 @@ export default function ServiciosPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="¿Eliminar este servicio? Esta acción no se puede deshacer."
+          onConfirm={() => handleDelete(confirmDeleteId)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
 
       {/* FAB mobile */}
