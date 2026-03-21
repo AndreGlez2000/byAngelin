@@ -102,7 +102,7 @@ export default function ServiciosPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
         <div>
           <h1 className="font-display text-2xl text-olive italic">Catálogo de Servicios</h1>
           <p className="text-xs text-olive/40 mt-0.5">{services.filter(s => s.isActive).length} activos · {services.length} total</p>
@@ -121,7 +121,7 @@ export default function ServiciosPage() {
         {grouped.map(({ cat, items }) => (
           <div key={cat}>
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">{cat}</h2>
-            <div className="bg-white rounded-xl shadow-card overflow-hidden">
+            <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-olive/8">
@@ -183,6 +183,29 @@ export default function ServiciosPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile card list — hidden on desktop */}
+            <div className="md:hidden bg-white rounded-xl shadow-card overflow-hidden">
+              <div className="px-4 py-2 bg-olive/5 text-xs font-semibold text-olive/60 uppercase tracking-wide">
+                {cat}
+              </div>
+              <div className="divide-y divide-olive/8">
+                {items.map(s => (
+                  <div key={s.id} className={`px-4 py-3.5 flex items-center justify-between ${!s.isActive ? 'opacity-45' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-olive truncate">{s.name}</div>
+                      <div className="text-xs text-olive/50 mt-0.5">{s.duration}</div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-sm font-semibold text-olive">{s.price}</div>
+                      <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors">
+                        <Pencil size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
 
@@ -196,8 +219,8 @@ export default function ServiciosPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl rounded-t-2xl shadow-modal p-6 w-full md:max-w-md h-auto md:h-auto overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-2xl text-olive italic">
                 {editing ? 'Editar Servicio' : 'Nuevo Servicio'}
