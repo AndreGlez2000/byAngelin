@@ -1,5 +1,6 @@
 'use client'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 
 type Client = { id: string; name: string; phone: string }
 type Appointment = {
@@ -24,6 +25,11 @@ const STATUS_DOT = {
   COMPLETED: 'bg-moss',
   CANCELLED: 'bg-olive/30',
 }
+const STATUS_TEXT = {
+  CONFIRMED: 'text-blossom-dark',
+  COMPLETED: 'text-moss',
+  CANCELLED: 'text-olive/40',
+}
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const DAY_NAMES_LONG = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -35,12 +41,13 @@ interface Props {
   onNextDay: () => void
   onToday: () => void
   onNewAppointment: () => void
-  onChangeStatus: (id: string, status: string, serviceName: string) => void
+  onEdit: (appt: Appointment) => void
+  onDelete: (id: string) => void
 }
 
 export function MobileDayView({
   selectedDay, today, appointments, onPrevDay, onNextDay, onToday,
-  onNewAppointment, onChangeStatus,
+  onNewAppointment, onEdit, onDelete,
 }: Props) {
   const isToday =
     selectedDay.toDateString() === today.toDateString()
@@ -82,23 +89,16 @@ export function MobileDayView({
             <ChevronRight size={20} />
           </button>
         </div>
-        <div className="flex gap-2 mt-2">
-          {!isToday && (
+        {!isToday && (
+          <div className="mt-2">
             <button
               onClick={onToday}
               className="text-xs text-blossom-dark border border-blossom/30 px-3 py-1 rounded-full"
             >
               Hoy
             </button>
-          )}
-          <button
-            onClick={onNewAppointment}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-blossom-dark text-white text-sm py-2 rounded-lg"
-          >
-            <Plus size={14} />
-            Nueva Cita
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Appointments list */}
@@ -115,29 +115,31 @@ export function MobileDayView({
               return (
                 <div
                   key={appt.id}
-                  className={`px-4 py-3.5 ${STATUS_BG[appt.status]}`}
+                  onClick={() => onEdit(appt)}
+                  className={`px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity ${STATUS_BG[appt.status]}`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appt.status]}`} />
                         <span className="text-xs text-olive/50">{time}</span>
+                        <span className={`text-xs ${STATUS_TEXT[appt.status]}`}>{STATUS_LABEL[appt.status]}</span>
                       </div>
-                      <div className="text-sm font-semibold text-olive truncate">{appt.client.name}</div>
+                      <Link
+                        href={`/clientes/${appt.client.id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-sm font-semibold text-olive truncate block hover:text-blossom-dark hover:underline transition-colors"
+                      >
+                        {appt.client.name}
+                      </Link>
                       <div className="text-xs text-olive/60 truncate">{appt.service}</div>
                     </div>
-                    {/* Status select — same interaction as desktop */}
-                    <div className="shrink-0">
-                      <select
-                        value={appt.status}
-                        onChange={e => onChangeStatus(appt.id, e.target.value, appt.service)}
-                        className="text-xs px-2 py-1.5 rounded-lg bg-white/70 border border-olive/15 outline-none cursor-pointer text-olive/60"
-                      >
-                        {(Object.keys(STATUS_LABEL) as Array<keyof typeof STATUS_LABEL>).map(s => (
-                          <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); onDelete(appt.id) }}
+                      className="shrink-0 p-2 -mr-1 text-olive/30 hover:text-blossom-dark active:text-blossom-dark transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               )
@@ -145,6 +147,14 @@ export function MobileDayView({
           </div>
         )}
       </div>
+
+      {/* FAB */}
+      <button
+        onClick={onNewAppointment}
+        className="fixed bottom-6 right-4 z-40 w-14 h-14 rounded-full bg-blossom-dark text-white shadow-lg flex items-center justify-center active:opacity-80 transition-opacity"
+      >
+        <Plus size={24} />
+      </button>
 
       {/* Legend */}
       <div className="flex items-center gap-4 px-4 py-2.5 border-t border-olive/10 bg-parchment shrink-0">

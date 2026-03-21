@@ -155,7 +155,7 @@ export default function InventarioPage() {
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
+          className="hidden md:flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
         >
           <Plus size={14} />
           Agregar Producto
@@ -163,10 +163,10 @@ export default function InventarioPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 flex flex-col gap-6 min-h-0 overflow-hidden">
+      <div className="flex-1 px-4 py-4 md:p-6 flex flex-col gap-4 md:gap-6 min-h-0 overflow-y-auto md:overflow-hidden">
         {/* En stock */}
         {inStock.length > 0 && (
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex flex-col md:flex-1 md:min-h-0">
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               En stock · {inStock.length}
             </h2>
@@ -299,7 +299,7 @@ export default function InventarioPage() {
 
         {/* Sin stock */}
         {outOfStock.length > 0 && (
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex flex-col md:flex-1 md:min-h-0">
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               Sin stock · Por comprar · {outOfStock.length}
             </h2>
@@ -547,6 +547,14 @@ export default function InventarioPage() {
           </div>
         </div>
       )}
+
+      {/* FAB mobile */}
+      <button
+        onClick={openNew}
+        className="md:hidden fixed bottom-6 right-4 z-40 w-14 h-14 rounded-full bg-blossom-dark text-white shadow-lg flex items-center justify-center active:opacity-80 transition-opacity"
+      >
+        <Plus size={24} />
+      </button>
     </div>
   )
 }

@@ -58,7 +58,7 @@ export default function ClientesPage() {
         </div>
         <button
           onClick={() => router.push('/clientes/nueva')}
-          className="flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
+          className="hidden md:flex items-center gap-1.5 bg-blossom-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-blossom transition-colors"
         >
           <Plus size={14} />
           Nueva Clienta
@@ -216,6 +216,14 @@ export default function ClientesPage() {
           )}
         </div>
       </div>
+
+      {/* FAB mobile */}
+      <button
+        onClick={() => router.push('/clientes/nueva')}
+        className="md:hidden fixed bottom-6 right-4 z-40 w-14 h-14 rounded-full bg-blossom-dark text-white shadow-lg flex items-center justify-center active:opacity-80 transition-opacity"
+      >
+        <Plus size={24} />
+      </button>
     </div>
   )
 }

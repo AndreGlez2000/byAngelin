@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, FileText, Pencil, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2 } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileDayView } from './_components/MobileDayView'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -41,6 +41,11 @@ const STATUS_DOT = {
   COMPLETED: 'bg-moss',
   CANCELLED: 'bg-olive/30',
 }
+const STATUS_TEXT = {
+  CONFIRMED: 'text-blossom-dark',
+  COMPLETED: 'text-moss',
+  CANCELLED: 'text-olive/40',
+}
 
 function mondayOf(date: Date): Date {
   const d = new Date(date)
@@ -56,7 +61,6 @@ function addDays(date: Date, n: number): Date {
 }
 
 export default function AgendaPage() {
-  const router = useRouter()
   const isMobile = useIsMobile()
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
   const [selectedDay, setSelectedDay] = useState(() => new Date())
@@ -334,7 +338,7 @@ export default function AgendaPage() {
                       return (
                         <div
                           key={a.id}
-                          onClick={() => router.push(`/clientes/${a.client.id}`)}
+                          onClick={() => openEdit(a)}
                           className={`rounded-lg p-2 cursor-pointer group hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[a.status]}`}
                         >
                           <div className="flex items-center justify-between mb-0.5">
@@ -343,34 +347,25 @@ export default function AgendaPage() {
                               {a.sessionNotes && (
                                 <FileText size={10} className="text-olive/40 shrink-0" />
                               )}
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={e => { e.stopPropagation(); openEdit(a) }}
-                                  className="p-0.5 rounded hover:bg-white/60 text-olive/50 hover:text-olive transition-colors"
-                                >
-                                  <Pencil size={9} />
-                                </button>
-                                <button
-                                  onClick={e => { e.stopPropagation(); handleDelete(a.id) }}
-                                  className="p-0.5 rounded hover:bg-white/60 text-olive/40 hover:text-blossom-dark transition-colors"
-                                >
-                                  <Trash2 size={9} />
-                                </button>
-                              </div>
+                              <button
+                                onClick={e => { e.stopPropagation(); handleDelete(a.id) }}
+                                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/60 text-olive/40 hover:text-blossom-dark transition-colors"
+                              >
+                                <Trash2 size={9} />
+                              </button>
                             </div>
                           </div>
                           <div className="text-xs font-medium text-olive leading-tight truncate">{a.service}</div>
-                          <div className="text-[10px] text-olive/60 truncate mt-0.5">{a.client.name}</div>
-                          <select
-                            value={a.status}
-                            onChange={e => changeStatus(a.id, e.target.value, a.service)}
+                          <Link
+                            href={`/clientes/${a.client.id}`}
                             onClick={e => e.stopPropagation()}
-                            className="mt-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-white/60 border-0 outline-none cursor-pointer text-olive/60 w-full"
+                            className="text-[10px] text-olive/60 truncate mt-0.5 block hover:text-blossom-dark hover:underline transition-colors"
                           >
-                            {(Object.keys(STATUS_LABEL) as Array<keyof typeof STATUS_LABEL>).map(s => (
-                              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                            ))}
-                          </select>
+                            {a.client.name}
+                          </Link>
+                          <span className={`mt-1 block text-[9px] ${STATUS_TEXT[a.status]}`}>
+                            {STATUS_LABEL[a.status]}
+                          </span>
                         </div>
                       )
                     })}
@@ -402,7 +397,8 @@ export default function AgendaPage() {
           onNextDay={nextDay}
           onToday={() => setSelectedDay(new Date())}
           onNewAppointment={() => setShowModal(true)}
-          onChangeStatus={changeStatus}
+          onEdit={openEdit}
+          onDelete={handleDelete}
         />
       )}
 
@@ -495,8 +491,8 @@ export default function AgendaPage() {
 
       {/* Modal editar cita */}
       {editingAppt && (
-        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-modal p-6 w-full md:max-w-sm max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-2xl text-olive italic">Editar Cita</h2>
               <button onClick={() => setEditingAppt(null)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
