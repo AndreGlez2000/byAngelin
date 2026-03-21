@@ -304,11 +304,8 @@ export default function ClientDetailPage() {
 
           {client.skinProfile ? (
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2">
                 <h3 className="font-display text-base text-olive italic">Análisis de Piel</h3>
-                <button onClick={openSkinModal}>
-                  <Pencil size={11} className="text-olive/30 hover:text-olive/60" />
-                </button>
               </div>
               <div className="space-y-1.5">
                 {(Object.keys(SKIN_LABELS) as Array<keyof typeof SKIN_LABELS>).map(key => {
