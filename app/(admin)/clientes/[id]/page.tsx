@@ -358,12 +358,12 @@ export default function ClientDetailPage() {
                           <p className="font-medium text-olive text-sm">{a.service}</p>
                           <p className="text-xs text-olive/50 mt-0.5">
                             {d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                            {a.pricePaid != null && (
-                              <span className="ml-2 text-moss font-medium">
-                                ${a.pricePaid.toLocaleString('es-MX')}
-                              </span>
-                            )}
                           </p>
+                          {a.pricePaid != null && (
+                            <p className="text-xs text-moss font-medium mt-0.5">
+                              ${a.pricePaid.toLocaleString('es-MX')}
+                            </p>
+                          )}
                           {a.sessionNotes && (
                             <p className="text-xs text-olive/40 mt-1 italic line-clamp-2">{a.sessionNotes}</p>
                           )}
