@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Pencil, ClipboardList, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { formatPhone } from '@/lib/utils'
 
 type SkinProfile = {
   id: string; fecha: string; edad: number | null
@@ -284,7 +285,7 @@ export default function ClientDetailPage() {
                 <Pencil size={11} />
               </button>
             </div>
-            <p className="text-sm text-olive/70 mt-0.5">{client.phone}</p>
+            <p className="text-sm text-olive/70 mt-0.5">{formatPhone(client.phone)}</p>
             {client.email
               ? <p className="text-xs text-olive/55 mt-0.5">{client.email}</p>
               : <button onClick={openEditClient} className="text-xs text-blossom-dark/60 hover:text-blossom-dark mt-0.5">+ agregar correo</button>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, ChevronRight } from 'lucide-react'
+import { formatPhone } from '@/lib/utils'
 
 type Client = {
   id: string
@@ -109,7 +110,7 @@ export default function ClientesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-olive/60">{c.phone}</td>
+                      <td className="px-4 py-3 text-sm text-olive/60">{formatPhone(c.phone)}</td>
                       <td className="px-4 py-3 text-sm text-olive/60">{c.skinProfile?.fototipo ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-olive/60">
                         {lastVisit ? formatDate(lastVisit) : '—'}
@@ -153,7 +154,7 @@ export default function ClientesPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-olive truncate">{c.name}</div>
-                    <div className="text-xs text-olive/50 mt-0.5">{c.phone}</div>
+                    <div className="text-xs text-olive/50 mt-0.5">{formatPhone(c.phone)}</div>
                     {skinType && (
                       <div className="text-xs text-olive/40">{skinType}</div>
                     )}
