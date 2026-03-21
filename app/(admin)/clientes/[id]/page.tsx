@@ -27,9 +27,9 @@ type Service = { id: string; name: string; price: number }
 
 const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_COLOR = {
-  CONFIRMED: 'bg-blossom/20 text-blossom-dark',
-  COMPLETED: 'bg-moss/25 text-olive-dark',
-  CANCELLED: 'bg-olive/10 text-olive/40',
+  CONFIRMED: 'bg-moss/20 text-moss',
+  COMPLETED: 'bg-olive/10 text-olive/50',
+  CANCELLED: 'bg-blossom/20 text-blossom-dark',
 }
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -297,7 +297,7 @@ export default function ClientDetailPage() {
               <div className="text-[10px] text-olive/40">citas</div>
             </div>
             <div className="bg-parchment rounded-lg py-2">
-              <div className="text-xs font-medium text-olive leading-tight">{stats.ultimaVisita}</div>
+              <div className="text-sm font-semibold text-olive leading-tight">{stats.ultimaVisita}</div>
               <div className="text-[10px] text-olive/40 mt-0.5">última visita</div>
             </div>
           </div>
