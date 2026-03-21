@@ -75,7 +75,7 @@ export default function DashboardPage() {
   const firstConfirmedIdx = metrics.todayAppointments.findIndex(x => x.status === 'CONFIRMED')
 
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-4 md:px-6 md:py-6 space-y-4 max-w-4xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl text-olive italic capitalize">{monthLabel}</h1>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 3 KPI cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-3 md:overflow-x-visible md:pb-0">
         <KpiCard
           label="Ingresos"
           value={mxn(metrics.revenueThisMonth)}
@@ -238,7 +238,7 @@ function KpiCard({
   change: { value: number; up: boolean } | null
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-card px-4 py-3">
+    <div className="bg-white rounded-xl shadow-card px-4 py-3 shrink-0 min-w-[160px] md:min-w-0">
       <div className="text-[10px] text-olive/40 uppercase tracking-widest mb-1">{label}</div>
       <div className="text-xl font-semibold text-olive leading-none">{value}</div>
       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
