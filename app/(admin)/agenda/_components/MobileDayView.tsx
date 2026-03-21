@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 type Client = { id: string; name: string; phone: string }
 type Appointment = {
@@ -134,12 +134,6 @@ export function MobileDayView({
                       </Link>
                       <div className="text-xs text-olive/60 truncate">{appt.service}</div>
                     </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); onDelete(appt.id) }}
-                      className="shrink-0 p-2 -mr-1 text-olive/30 hover:text-blossom-dark active:text-blossom-dark transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
                   </div>
                 </div>
               )

@@ -75,7 +75,7 @@ export default function DashboardPage() {
   const firstConfirmedIdx = metrics.todayAppointments.findIndex(x => x.status === 'CONFIRMED')
 
   return (
-    <div className="px-4 py-4 md:px-6 md:py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-4 md:px-6 md:py-6 space-y-4">
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl text-olive italic font-bold capitalize">{monthLabel}</h1>

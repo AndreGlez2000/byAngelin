@@ -46,6 +46,11 @@ const STATUS_TEXT = {
   COMPLETED: 'text-moss',
   CANCELLED: 'text-olive/40',
 }
+const STATUS_BADGE = {
+  CONFIRMED: 'bg-blossom-dark text-white',
+  COMPLETED: 'bg-moss text-white',
+  CANCELLED: 'bg-olive/20 text-olive/50',
+}
 
 function mondayOf(date: Date): Date {
   const d = new Date(date)
@@ -333,39 +338,32 @@ export default function AgendaPage() {
                       const time = new Date(a.date).toLocaleTimeString('es-MX', {
                         hour: '2-digit',
                         minute: '2-digit',
-                        hour12: false,
+                        hour12: true,
                       })
+                      const svcDuration = services.find(s => s.name === a.service)?.duration
                       return (
                         <div
                           key={a.id}
                           onClick={() => openEdit(a)}
-                          className={`rounded-lg p-2 cursor-pointer group hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[a.status]}`}
+                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[a.status]}`}
                         >
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[10px] text-olive/50 font-mono">{time}</span>
-                            <div className="flex items-center gap-0.5">
-                              {a.sessionNotes && (
-                                <FileText size={10} className="text-olive/40 shrink-0" />
-                              )}
-                              <button
-                                onClick={e => { e.stopPropagation(); handleDelete(a.id) }}
-                                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/60 text-olive/40 hover:text-blossom-dark transition-colors"
-                              >
-                                <Trash2 size={9} />
-                              </button>
-                            </div>
+                          {/* Time + duration */}
+                          <div className="text-[11px] font-semibold text-olive/80 mb-1.5 leading-none">
+                            {time}{svcDuration ? ` · ${svcDuration}` : ''}
                           </div>
-                          <div className="text-xs font-medium text-olive leading-tight truncate">{a.service}</div>
-                          <Link
-                            href={`/clientes/${a.client.id}`}
-                            onClick={e => e.stopPropagation()}
-                            className="text-[10px] text-olive/60 truncate mt-0.5 block hover:text-blossom-dark hover:underline transition-colors"
-                          >
-                            {a.client.name}
-                          </Link>
-                          <span className={`mt-1 block text-[9px] ${STATUS_TEXT[a.status]}`}>
-                            {STATUS_LABEL[a.status]}
-                          </span>
+                          {/* Client name */}
+                          <div className="text-xs font-semibold text-olive leading-tight truncate">{a.client.name}</div>
+                          {/* Service */}
+                          <div className="text-[10px] text-olive/60 truncate mt-0.5 leading-tight">{a.service}</div>
+                          {/* Status badge + notes icon */}
+                          <div className="flex items-center justify-between mt-2">
+                            <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${STATUS_BADGE[a.status]}`}>
+                              {STATUS_LABEL[a.status]}
+                            </span>
+                            {a.sessionNotes && (
+                              <FileText size={9} className="text-olive/40 shrink-0" />
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -593,6 +591,14 @@ export default function AgendaPage() {
                   {savingEdit ? 'Guardando…' : 'Guardar Cambios'}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => { handleDelete(editingAppt!.id); setEditingAppt(null) }}
+                className="w-full flex items-center justify-center gap-1.5 text-xs text-red-400 hover:text-red-600 py-1 transition-colors"
+              >
+                <Trash2 size={12} />
+                Eliminar cita
+              </button>
             </form>
           </div>
         </div>
