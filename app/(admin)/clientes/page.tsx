@@ -73,7 +73,6 @@ export default function ClientesPage() {
                 <tr className="border-b border-olive/10 text-left">
                   <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Nombre</th>
                   <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Teléfono</th>
-                  <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Tipo Piel</th>
                   <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Última Visita</th>
                   <th className="px-4 py-3 text-[10px] text-olive/40 uppercase tracking-widest font-medium">Citas</th>
                   <th className="px-4 py-3 w-8" />
@@ -82,7 +81,7 @@ export default function ClientesPage() {
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-olive/30 text-sm italic">
+                    <td colSpan={5} className="text-center py-12 text-olive/30 text-sm italic">
                       {search ? 'Sin resultados' : 'No hay clientas registradas'}
                     </td>
                   </tr>
@@ -104,14 +103,10 @@ export default function ClientesPage() {
                           </div>
                           <div>
                             <div className="text-sm font-medium text-olive">{c.name}</div>
-                            {c.skinProfile?.biotipo && (
-                              <div className="text-xs text-olive/40 italic">{c.skinProfile.biotipo}</div>
-                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-olive/60">{formatPhone(c.phone)}</td>
-                      <td className="px-4 py-3 text-sm text-olive/60">{c.skinProfile?.fototipo ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-olive/60">
                         {lastVisit ? formatDate(lastVisit) : '—'}
                       </td>
@@ -138,7 +133,6 @@ export default function ClientesPage() {
           ) : (
             filtered.map(c => {
               const lastVisit = c.appointments[0] ? formatDate(c.appointments[0].date) : '—'
-              const skinType = c.skinProfile?.fototipo || c.skinProfile?.biotipo || null
               return (
                 <div
                   key={c.id}
@@ -155,9 +149,6 @@ export default function ClientesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-olive truncate">{c.name}</div>
                     <div className="text-xs text-olive/50 mt-0.5">{formatPhone(c.phone)}</div>
-                    {skinType && (
-                      <div className="text-xs text-olive/40">{skinType}</div>
-                    )}
                   </div>
                   {/* Right side */}
                   <div className="text-right shrink-0">
