@@ -279,7 +279,7 @@ export default function ClientDetailPage() {
               <span className="text-blossom-dark font-semibold text-xl">{client.name.charAt(0)}</span>
             </div>
             <div className="flex items-center justify-center gap-1.5">
-              <h2 className="font-display text-lg text-olive italic leading-tight">{client.name}</h2>
+              <h2 className="font-display text-lg text-olive italic font-bold leading-tight">{client.name}</h2>
               <button onClick={openEditClient} className="text-olive/30 hover:text-olive/60 transition-colors">
                 <Pencil size={11} />
               </button>
