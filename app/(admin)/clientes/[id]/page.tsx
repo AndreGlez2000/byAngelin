@@ -189,7 +189,7 @@ export default function ClientDetailPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
+      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div>
           <nav className="text-xs text-olive/40 mb-1">
             <Link href="/clientes" className="hover:text-olive">Clientas</Link>
@@ -197,7 +197,7 @@ export default function ClientDetailPage() {
             <span className="text-olive/60">{client.name}</span>
           </nav>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={openSkinModal}
             className="border border-olive/20 text-olive text-sm px-4 py-2 rounded-lg hover:bg-white/60 transition-colors flex items-center gap-1.5"
@@ -216,9 +216,9 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Two-panel layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-hidden overflow-y-auto">
         {/* Left panel */}
-        <div className="w-52 shrink-0 border-r border-olive/10 overflow-y-auto bg-white/30 p-4 space-y-4">
+        <div className="w-full md:w-52 shrink-0 border-b md:border-b-0 md:border-r border-olive/10 overflow-y-auto bg-white/30 p-4 space-y-4">
           {/* Client card */}
           <div className="text-center pt-2">
             <div className="w-14 h-14 rounded-full bg-blossom/25 flex items-center justify-center mx-auto mb-2">
@@ -285,7 +285,7 @@ export default function ClientDetailPage() {
         </div>
 
         {/* Right panel — appointment history */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 md:overflow-y-auto p-6">
           <h2 className="font-display text-xl text-olive italic mb-4">Historial de Citas</h2>
 
           {client.appointments.length === 0 ? (
@@ -382,7 +382,7 @@ export default function ClientDetailPage() {
       {/* Modal: Editar Clienta */}
       {showEditClient && (
         <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-modal w-full max-w-xs">
+          <div className="bg-white md:rounded-2xl shadow-modal p-5 md:p-6 w-full h-full md:h-auto md:max-w-xs md:mx-4 overflow-y-auto">
             <h2 className="font-display text-xl text-olive italic mb-4">Editar Clienta</h2>
             <form onSubmit={handleEditClientSave} className="space-y-3">
               <div>
@@ -427,7 +427,7 @@ export default function ClientDetailPage() {
       {/* Modal: Nueva Cita */}
       {showNovaCita && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 shadow-modal max-w-xs w-full text-center">
+          <div className="bg-white md:rounded-2xl shadow-modal p-5 md:p-6 w-full h-full md:h-auto md:max-w-xs md:mx-4 overflow-y-auto text-center">
             <p className="text-olive text-sm mb-4">¿Ir a la agenda para agendar una cita para <strong>{client.name}</strong>?</p>
             <div className="flex gap-2">
               <button onClick={() => setShowNovaCita(false)} className="flex-1 border border-olive/20 text-olive text-sm py-2 rounded-lg hover:bg-olive/5">Cancelar</button>
@@ -440,7 +440,7 @@ export default function ClientDetailPage() {
       {/* Modal: Ficha de Piel */}
       {showSkinModal && (
         <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-white md:rounded-2xl shadow-modal w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] md:mx-4 flex flex-col overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-olive/10 shrink-0">
               <h2 className="font-display text-2xl text-olive italic">
