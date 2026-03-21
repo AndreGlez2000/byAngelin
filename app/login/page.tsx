@@ -26,9 +26,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-screen flex flex-col md:flex-row overflow-hidden">
+      {/* Mobile brand banner */}
+      <div className="md:hidden bg-olive-dark flex items-center justify-center gap-3 py-5 shrink-0">
+        <div className="font-script text-5xl text-white/90 leading-none">AE</div>
+        <div>
+          <div className="font-display text-base italic text-white/85">Angelin Esthetician</div>
+          <div className="text-white/40 text-xs tracking-widest uppercase">Skincare Studio</div>
+        </div>
+      </div>
+
       {/* Left brand panel */}
-      <div className="w-2/5 bg-olive-dark flex flex-col items-center justify-center p-12 shrink-0">
+      <div className="hidden md:flex w-2/5 bg-olive-dark flex-col items-center justify-center p-12 shrink-0">
         <div className="font-script text-8xl text-white/90 leading-none mb-4">AE</div>
         <div className="font-display text-xl text-white/75 italic tracking-wide">Angelin Esthetician</div>
         <div className="text-white/35 text-xs mt-1 tracking-widest uppercase">Facial &amp; Skincare Studio</div>
