@@ -95,16 +95,7 @@ export default function ClientesPage() {
                       className="border-b border-olive/5 last:border-b-0 hover:bg-parchment/50 cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blossom/20 flex items-center justify-center shrink-0">
-                            <span className="text-blossom-dark text-xs font-semibold">
-                              {c.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-olive">{c.name}</div>
-                          </div>
-                        </div>
+                        <div className="text-sm font-medium text-olive">{c.name}</div>
                       </td>
                       <td className="px-4 py-3 text-sm text-olive/60">{formatPhone(c.phone)}</td>
                       <td className="px-4 py-3 text-sm text-olive/60">
@@ -139,12 +130,6 @@ export default function ClientesPage() {
                   onClick={() => router.push(`/clientes/${c.id}`)}
                   className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-olive/4 active:bg-olive/8"
                 >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-blossom/25 flex items-center justify-center shrink-0">
-                    <span className="text-blossom-dark font-semibold text-sm">
-                      {c.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-olive truncate">{c.name}</div>

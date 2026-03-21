@@ -276,9 +276,6 @@ export default function ClientDetailPage() {
         {/* Left panel */}
         <div className="w-full md:w-52 shrink-0 border-b md:border-b-0 md:border-r border-olive/10 overflow-y-auto bg-white/30 p-4 space-y-4">
           <div className="text-center pt-2">
-            <div className="w-14 h-14 rounded-full bg-blossom/25 flex items-center justify-center mx-auto mb-2">
-              <span className="text-blossom-dark font-semibold text-xl">{client.name.charAt(0)}</span>
-            </div>
             <div className="flex items-center justify-center gap-1.5">
               <h2 className="font-display text-lg text-olive italic font-bold leading-tight">{client.name}</h2>
               <button onClick={openEditClient} className="text-olive/30 hover:text-olive/60 transition-colors">
