@@ -141,7 +141,7 @@ export default function InventarioPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-4 border-b border-olive/10 bg-parchment flex items-center justify-between shrink-0">
         <div>
           <h1 className="font-display text-2xl text-olive italic">Inventario</h1>
           <p className="text-xs text-olive/40 mt-0.5">
@@ -171,7 +171,8 @@ export default function InventarioPage() {
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               En stock · {inStock.length}
             </h2>
-            <div className="bg-white rounded-xl shadow-card overflow-hidden">
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-olive/8">
@@ -236,6 +237,62 @@ export default function InventarioPage() {
                 </tbody>
               </table>
             </div>
+            {/* Mobile card list */}
+            <div className="md:hidden bg-white rounded-xl shadow-card divide-y divide-olive/8">
+              {inStock.map(p => {
+                const pct = p.capacityPerUnit > 0 ? Math.min(100, Math.round((p.stock / p.capacityPerUnit) * 100)) : 0
+                const isLow = p.stock < p.lowStockAlert
+                return (
+                  <div key={p.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-olive truncate">{p.name}</div>
+                        {p.brand && (
+                          <div className="text-xs text-olive/45 mt-0.5">{p.brand}</div>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold text-olive">
+                          {p.stock % 1 === 0 ? p.stock.toFixed(0) : p.stock.toFixed(1)} {p.unit}
+                        </div>
+                        <div className="text-xs text-olive/50">{mxn(p.costPerUnit)}</div>
+                      </div>
+                    </div>
+                    {/* Stock bar */}
+                    <div className="mt-2 h-1.5 bg-olive/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isLow ? 'bg-red-400' : 'bg-moss'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {isLow && (
+                      <div className="mt-1 text-xs text-red-500 font-medium">Stock bajo</div>
+                    )}
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
+                      >
+                        <PackagePlus size={12} />
+                        Restock
+                      </button>
+                      <button
+                        onClick={() => openEdit(p)}
+                        className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p)}
+                        className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -245,7 +302,8 @@ export default function InventarioPage() {
             <h2 className="text-[10px] uppercase tracking-widest text-olive/40 font-medium mb-2">
               Sin stock · Por comprar · {outOfStock.length}
             </h2>
-            <div className="bg-white rounded-xl shadow-card overflow-hidden">
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-xl shadow-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-olive/8">
@@ -293,6 +351,46 @@ export default function InventarioPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Mobile card list */}
+            <div className="md:hidden bg-white rounded-xl shadow-card divide-y divide-olive/8 opacity-70">
+              {outOfStock.map(p => (
+                <div key={p.id} className="px-4 py-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-olive truncate">{p.name}</div>
+                      {p.brand && (
+                        <div className="text-xs text-olive/45 mt-0.5">{p.brand}</div>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-olive/50">{p.unit}</div>
+                      <div className="text-xs text-olive/50">{mxn(p.costPerUnit)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-1.5">
+                    <button
+                      onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
+                    >
+                      <PackagePlus size={12} />
+                      Restock
+                    </button>
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p)}
+                      className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
