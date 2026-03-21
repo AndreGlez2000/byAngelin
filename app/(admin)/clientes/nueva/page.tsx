@@ -84,7 +84,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         <div className="w-1 h-4 bg-blossom-dark rounded-full" />
         <h2 className="text-xs font-semibold text-olive/60 uppercase tracking-widest">{title}</h2>
       </div>
-      <div className="grid grid-cols-2 gap-3">{children}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
     </div>
   )
 }
@@ -157,19 +157,19 @@ export default function NuevaClientaPage() {
       </div>
 
       {/* Form */}
-      <form id="nueva-clienta-form" onSubmit={handleSubmit} className="flex-1 overflow-auto px-6 py-6">
+      <form id="nueva-clienta-form" onSubmit={handleSubmit} className="flex-1 overflow-auto px-4 py-4 md:px-6 md:py-6">
         <div className="max-w-3xl space-y-8">
           {/* Datos de identificación */}
           <Section title="Datos de Identificación">
             <Input label="Fecha" type="date" value={skin.fecha} onChange={s('fecha')} />
-            <div className="col-span-2">
+            <div className="col-span-1 md:col-span-2">
               <Input label="Nombre Completo" placeholder="Nombre completo de la clienta" value={name} onChange={setName} />
             </div>
             <div style={{ display: 'none' }}>
               {/* hidden col spacer - edad below */}
             </div>
             <Input label="Edad" type="number" placeholder="Ej. 24" value={skin.edad} onChange={s('edad')} />
-            <Input label="Teléfono" placeholder="Número de teléfono" value={phone} onChange={setPhone} />
+            <Input label="Teléfono" type="tel" placeholder="Número de teléfono" value={phone} onChange={setPhone} />
             <Input label="Correo Electrónico (opcional)" type="email" placeholder="correo@ejemplo.com" value={email} onChange={setEmail} />
           </Section>
 
@@ -197,24 +197,24 @@ export default function NuevaClientaPage() {
 
           {/* Historia médica */}
           <Section title="Historia Médica">
-            <div className="col-span-2">
+            <div className="col-span-1 md:col-span-2">
               <Textarea label="Enfermedades" value={skin.enfermedades} onChange={s('enfermedades')} placeholder="Enfermedades relevantes…" />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1 md:col-span-2">
               <Textarea label="Medicamentos" value={skin.medicamentos} onChange={s('medicamentos')} placeholder="Medicamentos actuales…" />
             </div>
           </Section>
 
           {/* Deporte */}
           <Section title="Deporte / Actividad Física">
-            <div className="col-span-2">
+            <div className="col-span-1 md:col-span-2">
               <Input label="Actividad física" value={skin.deporte} onChange={s('deporte')} placeholder="Tipo y frecuencia de ejercicio…" />
             </div>
           </Section>
 
           {/* Comentarios */}
           <Section title="Comentarios Adicionales">
-            <div className="col-span-2">
+            <div className="col-span-1 md:col-span-2">
               <Textarea
                 label="Comentarios"
                 value={skin.comentarios}
