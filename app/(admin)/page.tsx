@@ -8,7 +8,7 @@ type TodayAppointment = {
   service: string
   date: string
   status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-  client: { name: string }
+  client: { id: string; name: string }
 }
 type LowStockItem = {
   id: string

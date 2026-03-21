@@ -52,7 +52,7 @@ export async function GET() {
 
   const todayAppointments = await db.appointment.findMany({
     where: { date: { gte: startOfToday, lte: endOfToday } },
-    include: { client: { select: { name: true } } },
+    include: { client: { select: { id: true, name: true } } },
     orderBy: { date: 'asc' },
   })
 
