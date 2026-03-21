@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, PackagePlus, AlertTriangle, Package } from 'lucide-react'
+import { Plus, Trash2, PackagePlus, AlertTriangle, Package } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Product = {
   id: string
@@ -48,6 +49,7 @@ export default function InventarioPage() {
   const [restockTarget, setRestockTarget] = useState<Product | null>(null)
   const [restockQty, setRestockQty] = useState('')
   const [restocking, setRestocking] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   async function load() {
     const res = await fetch('/api/inventory')
@@ -105,9 +107,9 @@ export default function InventarioPage() {
     load()
   }
 
-  async function handleDelete(p: Product) {
-    if (!confirm(`¿Desactivar "${p.name}"?`)) return
-    await fetch(`/api/inventory/${p.id}`, { method: 'DELETE' })
+  async function handleDelete(id: string) {
+    await fetch(`/api/inventory/${id}`, { method: 'DELETE' })
+    setConfirmDeleteId(null)
     load()
   }
 
@@ -185,7 +187,7 @@ export default function InventarioPage() {
                 </thead>
                 <tbody>
                   {inStock.map(p => (
-                    <tr key={p.id} className="border-b border-olive/6 last:border-b-0">
+                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 cursor-pointer hover:bg-parchment/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{p.name}</div>
                         {p.brand && <div className="text-[11px] text-olive/40">{p.brand}</div>}
@@ -212,20 +214,14 @@ export default function InventarioPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 justify-end">
                           <button
-                            onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                            onClick={e => { e.stopPropagation(); setRestockTarget(p); setRestockQty('') }}
                             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
                           >
                             <PackagePlus size={12} />
                             Restock
                           </button>
                           <button
-                            onClick={() => openEdit(p)}
-                            className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(p)}
+                            onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
                             className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
                           >
                             <Trash2 size={13} />
@@ -244,7 +240,7 @@ export default function InventarioPage() {
                 const pct = p.capacityPerUnit > 0 ? Math.min(100, Math.round((p.stock / p.capacityPerUnit) * 100)) : 0
                 const isLow = p.stock < p.lowStockAlert
                 return (
-                  <div key={p.id} className="px-4 py-3.5">
+                  <div key={p.id} onClick={() => openEdit(p)} className="px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-olive truncate">{p.name}</div>
@@ -271,23 +267,17 @@ export default function InventarioPage() {
                     )}
                     <div className="mt-2.5 flex items-center gap-1.5">
                       <button
-                        onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                        onClick={e => { e.stopPropagation(); setRestockTarget(p); setRestockQty('') }}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
                       >
                         <PackagePlus size={12} />
                         Restock
                       </button>
                       <button
-                        onClick={() => openEdit(p)}
-                        className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
+                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
+                        className="p-1.5 -mr-1 text-olive/30 hover:text-blossom-dark active:text-blossom-dark transition-colors"
                       >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p)}
-                        className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
-                      >
-                        <Trash2 size={13} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -317,7 +307,7 @@ export default function InventarioPage() {
                 </thead>
                 <tbody>
                   {outOfStock.map(p => (
-                    <tr key={p.id} className="border-b border-olive/6 last:border-b-0 opacity-55">
+                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 opacity-55 cursor-pointer hover:bg-parchment/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{p.name}</div>
                         {p.brand && <div className="text-[11px] text-olive/40">{p.brand}</div>}
@@ -329,20 +319,14 @@ export default function InventarioPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 justify-end">
                           <button
-                            onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                            onClick={e => { e.stopPropagation(); setRestockTarget(p); setRestockQty('') }}
                             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
                           >
                             <PackagePlus size={12} />
                             Restock
                           </button>
                           <button
-                            onClick={() => openEdit(p)}
-                            className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(p)}
+                            onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
                             className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
                           >
                             <Trash2 size={13} />
@@ -358,7 +342,7 @@ export default function InventarioPage() {
             {/* Mobile card list */}
             <div className="md:hidden bg-white rounded-xl shadow-card divide-y divide-olive/8 opacity-70">
               {outOfStock.map(p => (
-                <div key={p.id} className="px-4 py-3.5">
+                <div key={p.id} onClick={() => openEdit(p)} className="px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-olive truncate">{p.name}</div>
@@ -373,23 +357,17 @@ export default function InventarioPage() {
                   </div>
                   <div className="mt-2.5 flex items-center gap-1.5">
                     <button
-                      onClick={() => { setRestockTarget(p); setRestockQty('') }}
+                      onClick={e => { e.stopPropagation(); setRestockTarget(p); setRestockQty('') }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-moss/10 text-moss text-xs font-medium hover:bg-moss/20 transition-colors"
                     >
                       <PackagePlus size={12} />
                       Restock
                     </button>
                     <button
-                      onClick={() => openEdit(p)}
-                      className="p-1.5 rounded hover:bg-olive/8 text-olive/40 hover:text-olive transition-colors"
+                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
+                      className="p-1.5 -mr-1 text-olive/30 hover:text-blossom-dark active:text-blossom-dark transition-colors"
                     >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p)}
-                      className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors"
-                    >
-                      <Trash2 size={13} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
@@ -411,15 +389,15 @@ export default function InventarioPage() {
 
       {/* Modal: Crear / Editar producto */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl rounded-t-2xl shadow-modal w-full md:max-w-md max-h-[90dvh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 className="font-display text-2xl text-olive italic">
                 {editing ? 'Editar Producto' : 'Nuevo Producto'}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
             </div>
-            <form onSubmit={handleSave} className="flex flex-col gap-3">
+            <form onSubmit={handleSave} className="overflow-y-auto flex-1 px-6 pb-6 flex flex-col gap-3">
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">Nombre del producto</label>
                 <input
@@ -481,7 +459,7 @@ export default function InventarioPage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2 pt-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -504,17 +482,17 @@ export default function InventarioPage() {
 
       {/* Modal: Restock */}
       {restockTarget && (
-        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-1">
+        <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl rounded-t-2xl shadow-modal w-full md:max-w-sm">
+            <div className="flex items-center justify-between px-6 pt-6 pb-1">
               <h2 className="font-display text-xl text-olive italic">Reabastecer</h2>
               <button onClick={() => setRestockTarget(null)} className="text-olive/30 hover:text-olive/60 text-lg leading-none">✕</button>
             </div>
-            <p className="text-sm text-olive/50 mb-4">
+            <p className="text-sm text-olive/50 px-6 pb-4">
               {restockTarget.name}
               {restockTarget.brand && <span className="text-olive/30"> · {restockTarget.brand}</span>}
             </p>
-            <div>
+            <div className="px-6 pb-6">
               <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
                 Cantidad a agregar ({restockTarget.unit})
               </label>
@@ -528,24 +506,32 @@ export default function InventarioPage() {
                 placeholder={`Ej. ${restockTarget.capacityPerUnit}`}
                 className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
               />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => setRestockTarget(null)}
-                className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleRestock}
-                disabled={!restockQty || restocking}
-                className="flex-1 bg-moss text-white text-sm py-2.5 rounded-lg hover:bg-moss/80 transition-colors disabled:opacity-50"
-              >
-                {restocking ? 'Guardando…' : 'Confirmar'}
-              </button>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setRestockTarget(null)}
+                  className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRestock}
+                  disabled={!restockQty || restocking}
+                  className="flex-1 bg-moss text-white text-sm py-2.5 rounded-lg hover:bg-moss/80 transition-colors disabled:opacity-50"
+                >
+                  {restocking ? 'Guardando…' : 'Confirmar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="¿Eliminar este producto? Esta acción no se puede deshacer."
+          onConfirm={() => handleDelete(confirmDeleteId)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
 
       {/* FAB mobile */}
