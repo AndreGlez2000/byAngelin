@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, ToggleLeft, ToggleRight, X, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, X, Package } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Product = {
@@ -49,7 +49,6 @@ export default function ServiciosPage() {
   const [form, setForm] = useState(emptyForm)
   const [productLines, setProductLines] = useState<ProductLine[]>([])
   const [saving, setSaving] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   async function load() {
@@ -187,73 +186,38 @@ export default function ServiciosPage() {
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Servicio</th>
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Duración</th>
                     <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Precio</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-olive/40 font-medium">Productos</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
-                  {items.flatMap((s) => {
-                    const isExpanded = expandedId === s.id
-                    return [
-                      <tr key={s.id} onClick={() => openEdit(s)} className={`border-b border-olive/6 ${isExpanded ? '' : 'last:border-b-0'} ${!s.isActive ? 'opacity-45' : ''} cursor-pointer hover:bg-parchment/50 transition-colors`}>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-olive">{s.name}</div>
-                          {s.description && (
-                            <div className="text-[11px] text-olive/40 mt-0.5 leading-relaxed line-clamp-1">{s.description}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-olive/60 whitespace-nowrap">{s.duration}</td>
-                        <td className="px-4 py-3 text-olive font-medium whitespace-nowrap">{s.price}</td>
-                        <td className="px-4 py-3">
-                          {s.serviceProducts.length === 0
-                            ? <span className="text-olive/20 text-[11px]">—</span>
-                            : (
-                              <button
-                                onClick={() => setExpandedId(isExpanded ? null : s.id)}
-                                className="flex items-center gap-1 text-[11px] text-olive/50 hover:text-olive transition-colors"
-                              >
-                                {isExpanded
-                                  ? <ChevronDown size={12} />
-                                  : <ChevronRight size={12} />
-                                }
-                                {s.serviceProducts.length} producto{s.serviceProducts.length !== 1 ? 's' : ''}
-                              </button>
-                            )
-                          }
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button
-                              onClick={e => { e.stopPropagation(); toggleActive(s) }}
-                              title={s.isActive ? 'Desactivar' : 'Activar'}
-                              className="p-1.5 rounded hover:bg-olive/8 transition-colors"
-                            >
-                              {s.isActive
-                                ? <ToggleRight size={15} className="text-moss" />
-                                : <ToggleLeft size={15} className="text-olive/30" />
-                              }
-                            </button>
-                            <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }} className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors">
-                              <Trash2 size={13} />
-                            </button>
+                  {items.map((s) => (
+                    <tr key={s.id} onClick={() => openEdit(s)} className={`border-b border-olive/6 last:border-b-0 ${!s.isActive ? 'opacity-45' : ''} cursor-pointer hover:bg-parchment/50 transition-colors`}>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-olive">{s.name}</div>
+                        {s.description && (
+                          <div className="text-[11px] text-olive/40 mt-0.5 leading-relaxed line-clamp-1">{s.description}</div>
+                        )}
+                        {s.serviceProducts.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {s.serviceProducts.map(sp => (
+                              <span key={sp.id} className="inline-flex items-center text-[10px] bg-moss/10 border border-moss/20 text-olive/60 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                {sp.product.name} · {sp.quantityUsed}{sp.product.unit}
+                              </span>
+                            ))}
                           </div>
-                        </td>
-                      </tr>,
-                      isExpanded && (
-                        <tr key={`${s.id}-products`} className="border-b border-olive/6 last:border-b-0">
-                          <td colSpan={5} className="px-4 py-2.5 bg-parchment/40">
-                            <div className="flex flex-wrap gap-1.5">
-                              {s.serviceProducts.map(sp => (
-                                <span key={sp.id} className="inline-flex items-center text-[10px] bg-white border border-olive/10 text-olive/60 px-2 py-1 rounded-full whitespace-nowrap shadow-sm">
-                                  {sp.product.name} · {sp.quantityUsed}{sp.product.unit}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      ),
-                    ].filter(Boolean)
-                  })}
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-olive/60 whitespace-nowrap">{s.duration}</td>
+                      <td className="px-4 py-3 text-olive font-medium whitespace-nowrap">{s.price}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }} className="p-1.5 rounded hover:bg-blossom/15 text-olive/30 hover:text-blossom-dark transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
