@@ -16,19 +16,19 @@ type Appointment = {
 
 const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_BG = {
-  CONFIRMED: 'bg-blossom/25',
-  COMPLETED: 'bg-moss/25',
-  CANCELLED: 'bg-olive/8 opacity-60',
+  CONFIRMED: 'bg-moss/25',
+  COMPLETED: 'bg-olive/8',
+  CANCELLED: 'bg-blossom/25',
 }
 const STATUS_DOT = {
-  CONFIRMED: 'bg-blossom-dark',
-  COMPLETED: 'bg-moss',
-  CANCELLED: 'bg-olive/30',
+  CONFIRMED: 'bg-moss',
+  COMPLETED: 'bg-olive/30',
+  CANCELLED: 'bg-blossom-dark',
 }
 const STATUS_TEXT = {
-  CONFIRMED: 'text-blossom-dark',
-  COMPLETED: 'text-moss',
-  CANCELLED: 'text-olive/40',
+  CONFIRMED: 'text-moss',
+  COMPLETED: 'text-olive/40',
+  CANCELLED: 'text-blossom-dark',
 }
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const DAY_NAMES_LONG = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']

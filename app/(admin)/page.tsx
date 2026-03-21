@@ -125,7 +125,7 @@ export default function DashboardPage() {
                 const borderColor =
                   a.status === 'COMPLETED' ? 'border-l-moss' :
                   a.status === 'CANCELLED' ? 'border-l-olive/20' :
-                  'border-l-blossom-dark'
+                  'border-l-moss'
                 const bgColor =
                   a.status === 'COMPLETED' ? 'bg-moss/5' :
                   a.status === 'CANCELLED' ? 'opacity-60' : ''
@@ -135,15 +135,15 @@ export default function DashboardPage() {
                     onClick={() => router.push(`/clientes/${a.client.id}`)}
                     className={`w-full text-left px-4 py-3 flex items-center gap-3 border-l-[3px] hover:bg-olive/5 transition-colors ${borderColor} ${bgColor}`}
                   >
-                    <div className={`font-mono text-[11px] font-bold shrink-0 w-9 ${
-                      a.status === 'COMPLETED' ? 'text-moss' : a.status === 'CANCELLED' ? 'text-olive/30' : 'text-blossom-dark'
+                    <div className={`text-[11px] font-bold shrink-0 w-9 ${
+                      a.status === 'COMPLETED' ? 'text-moss' : a.status === 'CANCELLED' ? 'text-olive/30' : 'text-moss'
                     }`}>{time}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-olive truncate">{a.client.name}</div>
                       <div className="text-xs text-olive/50 truncate">{a.service}</div>
                     </div>
                     {isNext && (
-                      <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium shrink-0">
+                      <span className="text-[10px] bg-moss/15 text-moss border border-moss/30 rounded px-1.5 py-0.5 font-medium shrink-0">
                         ahora
                       </span>
                     )}
@@ -161,11 +161,11 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl shadow-card overflow-hidden">
           <div className="px-4 py-3 border-b border-olive/8 flex items-center gap-2">
             {metrics.lowStock.length > 0 && (
-              <AlertTriangle size={13} className="text-amber-500 shrink-0" />
+              <AlertTriangle size={13} className="text-blossom-dark shrink-0" />
             )}
             <h2 className="text-sm font-semibold text-olive">Stock bajo</h2>
             {metrics.lowStock.length > 0 && (
-              <span className="ml-auto text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">
+              <span className="ml-auto text-xs bg-blossom/15 text-blossom-dark px-2 py-0.5 rounded-full font-medium">
                 {metrics.lowStock.length}
               </span>
             )}
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                   <div className="text-xs font-medium text-olive truncate">{p.name}</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {p.brand && <span className="text-[10px] text-olive/40">{p.brand} ·</span>}
-                    <span className="text-[10px] text-amber-600 font-medium">
+                    <span className="text-[10px] text-blossom-dark font-medium">
                       {p.stock.toFixed(2)} {p.unit}
                     </span>
                     <span className="text-[10px] text-olive/30">/ alerta: {p.lowStockAlert}</span>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                     <div className="text-sm text-olive truncate">{item.service}</div>
                     <div className="mt-1.5 h-1.5 bg-olive/6 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blossom-dark/60 rounded-full transition-all"
+                        className="h-full bg-moss rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -244,7 +244,7 @@ function KpiCard({
       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
         <span className="text-[11px] text-olive/40">{sub}</span>
         {change && (
-          <span className={`flex items-center gap-0.5 text-[11px] font-medium ${change.up ? 'text-moss' : 'text-red-400'}`}>
+          <span className={`flex items-center gap-0.5 text-[11px] font-medium ${change.up ? 'text-moss' : 'text-blossom-dark'}`}>
             {change.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {change.value}%
           </span>

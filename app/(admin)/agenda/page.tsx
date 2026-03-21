@@ -32,24 +32,29 @@ const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'S
 
 const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_BG = {
-  CONFIRMED: 'bg-blossom/25',
-  COMPLETED: 'bg-moss/25',
-  CANCELLED: 'bg-olive/8 opacity-60',
+  CONFIRMED: 'bg-moss/25',
+  COMPLETED: 'bg-olive/8',
+  CANCELLED: 'bg-blossom/25',
 }
 const STATUS_DOT = {
-  CONFIRMED: 'bg-blossom-dark',
-  COMPLETED: 'bg-moss',
-  CANCELLED: 'bg-olive/30',
+  CONFIRMED: 'bg-moss',
+  COMPLETED: 'bg-olive/30',
+  CANCELLED: 'bg-blossom-dark',
 }
 const STATUS_TEXT = {
-  CONFIRMED: 'text-blossom-dark',
-  COMPLETED: 'text-moss',
-  CANCELLED: 'text-olive/40',
+  CONFIRMED: 'text-moss',
+  COMPLETED: 'text-olive/40',
+  CANCELLED: 'text-blossom-dark',
 }
 const STATUS_BADGE = {
-  CONFIRMED: 'bg-blossom-dark text-white',
-  COMPLETED: 'bg-moss text-white',
-  CANCELLED: 'bg-olive/20 text-olive/50',
+  CONFIRMED: 'bg-moss text-white',
+  COMPLETED: 'bg-olive/20 text-olive/50',
+  CANCELLED: 'bg-blossom-dark text-white',
+}
+const STATUS_BG_TODAY = {
+  CONFIRMED: 'bg-white/90',
+  COMPLETED: 'bg-white/75',
+  CANCELLED: 'bg-white/40 opacity-60',
 }
 
 function mondayOf(date: Date): Date {
@@ -331,7 +336,7 @@ export default function AgendaPage() {
                   <div
                     key={i}
                     className={`border-r border-olive/8 last:border-r-0 p-1.5 space-y-1.5 ${
-                      isToday ? 'bg-parchment/60' : ''
+                      isToday ? 'bg-olive-dark/30' : ''
                     }`}
                   >
                     {dayAppts.map(a => {
@@ -345,7 +350,7 @@ export default function AgendaPage() {
                         <div
                           key={a.id}
                           onClick={() => openEdit(a)}
-                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[a.status]}`}
+                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${isToday ? STATUS_BG_TODAY[a.status] : STATUS_BG[a.status]}`}
                         >
                           {/* Time + duration */}
                           <div className="text-[11px] font-semibold text-olive/80 mb-1.5 leading-none">
