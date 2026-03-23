@@ -68,6 +68,9 @@ model Appointment {
   client                   Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   inventoryLogs            InventoryLog[]
   photos                   ClientPhoto[]
+
+  @@index([status, date])
+  @@index([clientId])
 }
 
 enum AppointmentStatus {
@@ -115,6 +118,8 @@ model ServiceProduct {
   product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([serviceId, productId])
+  @@index([serviceId])
+  @@index([productId])
 }
 
 model InventoryLog {
@@ -126,6 +131,9 @@ model InventoryLog {
   createdAt     DateTime    @default(now())
   product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([appointmentId])
 }
 
 model ClientPhoto {
@@ -136,4 +144,7 @@ model ClientPhoto {
   createdAt     DateTime     @default(now())
   client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([appointmentId])
 }
