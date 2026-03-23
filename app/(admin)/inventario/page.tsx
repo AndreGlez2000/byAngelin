@@ -187,7 +187,7 @@ export default function InventarioPage() {
                 </thead>
                 <tbody>
                   {inStock.map(p => (
-                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 cursor-pointer hover:bg-parchment/50 transition-colors">
+                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 cursor-pointer hover:bg-blossom/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{p.name}</div>
                         {p.brand && <div className="text-[11px] text-olive/40">{p.brand}</div>}
@@ -307,7 +307,7 @@ export default function InventarioPage() {
                 </thead>
                 <tbody>
                   {outOfStock.map(p => (
-                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 opacity-55 cursor-pointer hover:bg-parchment/50 transition-colors">
+                    <tr key={p.id} onClick={() => openEdit(p)} className="border-b border-olive/6 last:border-b-0 opacity-55 cursor-pointer hover:bg-blossom/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{p.name}</div>
                         {p.brand && <div className="text-[11px] text-olive/40">{p.brand}</div>}

@@ -92,7 +92,7 @@ export default function ClientesPage() {
                     <tr
                       key={c.id}
                       onClick={() => router.push(`/clientes/${c.id}`)}
-                      className="border-b border-olive/5 last:border-b-0 hover:bg-parchment/50 cursor-pointer transition-colors"
+                      className="border-b border-olive/5 last:border-b-0 hover:bg-blossom/20 cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
                         <div className="text-sm font-medium text-olive">{c.name}</div>
@@ -128,7 +128,7 @@ export default function ClientesPage() {
                 <div
                   key={c.id}
                   onClick={() => router.push(`/clientes/${c.id}`)}
-                  className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-olive/4 active:bg-olive/8"
+                  className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-blossom/20 active:bg-blossom/30"
                 >
                   {/* Info */}
                   <div className="flex-1 min-w-0">
