@@ -43,11 +43,12 @@ interface Props {
   onNewAppointment: () => void
   onEdit: (appt: Appointment) => void
   onDelete: (id: string) => void
+  getDisplayStatus: (appt: Appointment) => Appointment['status']
 }
 
 export function MobileDayView({
   selectedDay, today, appointments, onPrevDay, onNextDay, onToday,
-  onNewAppointment, onEdit, onDelete,
+  onNewAppointment, onEdit, onDelete, getDisplayStatus,
 }: Props) {
   const isToday =
     selectedDay.toDateString() === today.toDateString()
@@ -110,20 +111,21 @@ export function MobileDayView({
         ) : (
           <div className="divide-y divide-olive/8">
             {dayAppts.map(appt => {
+              const displayStatus = getDisplayStatus(appt)
               const apptDate = new Date(appt.date)
               const time = apptDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })
               return (
                 <div
                   key={appt.id}
                   onClick={() => onEdit(appt)}
-                  className={`px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity ${STATUS_BG[appt.status]}`}
+                  className={`px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity ${STATUS_BG[displayStatus]}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appt.status]}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[displayStatus]}`} />
                         <span className="text-xs text-olive/50">{time}</span>
-                        <span className={`text-xs ${STATUS_TEXT[appt.status]}`}>{STATUS_LABEL[appt.status]}</span>
+                        <span className={`text-xs ${STATUS_TEXT[displayStatus]}`}>{STATUS_LABEL[displayStatus]}</span>
                       </div>
                       <Link
                         href={`/clientes/${appt.client.id}`}

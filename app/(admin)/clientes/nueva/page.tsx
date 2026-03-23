@@ -29,7 +29,7 @@ function Select({ name: _name, label, options, value, onChange, required }: {
 }) {
   return (
     <div>
-      <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">{label}</label>
+      <label className="text-[10px] text-olive/70 uppercase tracking-widest mb-1 block">{label}</label>
       <select
         required={required}
         value={value}
@@ -49,7 +49,7 @@ function Input({ label, value, onChange, type = 'text', placeholder }: {
 }) {
   return (
     <div>
-      <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">{label}</label>
+      <label className="text-[10px] text-olive/70 uppercase tracking-widest mb-1 block">{label}</label>
       <input
         type={type}
         value={value}
@@ -66,7 +66,7 @@ function Textarea({ label, value, onChange, placeholder }: {
 }) {
   return (
     <div>
-      <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">{label}</label>
+      <label className="text-[10px] text-olive/70 uppercase tracking-widest mb-1 block">{label}</label>
       <textarea
         value={value}
         placeholder={placeholder}
@@ -83,7 +83,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div>
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1 h-4 bg-blossom-dark rounded-full" />
-        <h2 className="text-xs font-semibold text-olive/60 uppercase tracking-widest">{title}</h2>
+        <h2 className="text-xs font-semibold text-olive/80 uppercase tracking-widest">{title}</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
     </div>
@@ -136,7 +136,7 @@ export default function NuevaClientaPage() {
             <span className="mx-1.5">/</span>
             <span className="text-olive/60">Nueva Clienta</span>
           </nav>
-          <h1 className="font-display text-2xl text-olive italic">Nueva Clienta</h1>
+          <h1 className="font-display text-2xl text-olive italic font-bold">Nueva Clienta</h1>
           <p className="text-xs text-olive/40 mt-0.5">Completa la ficha de piel para registrar a la nueva clienta.</p>
         </div>
         <div className="flex gap-2">

@@ -57,6 +57,18 @@ const STATUS_BG_TODAY = {
   CANCELLED: 'bg-white/40 opacity-60',
 }
 
+function getDisplayStatus(
+  appt: Appointment,
+  services: Service[],
+  now: Date
+): Appointment['status'] {
+  if (appt.status !== 'CONFIRMED') return appt.status
+  const svc = services.find(s => s.name === appt.service)
+  const durationMin = svc ? parseInt(svc.duration) || 0 : 0
+  const endTime = new Date(new Date(appt.date).getTime() + durationMin * 60_000)
+  return endTime < now ? 'COMPLETED' : 'CONFIRMED'
+}
+
 function mondayOf(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
@@ -335,11 +347,10 @@ export default function AgendaPage() {
                 return (
                   <div
                     key={i}
-                    className={`border-r border-olive/8 last:border-r-0 p-1.5 space-y-1.5 ${
-                      isToday ? 'bg-olive-dark/30' : ''
-                    }`}
+                    className="border-r border-olive/8 last:border-r-0 p-1.5 space-y-1.5"
                   >
                     {dayAppts.map(a => {
+                      const displayStatus = getDisplayStatus(a, services, today)
                       const time = new Date(a.date).toLocaleTimeString('es-MX', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -350,20 +361,26 @@ export default function AgendaPage() {
                         <div
                           key={a.id}
                           onClick={() => openEdit(a)}
-                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${isToday ? STATUS_BG_TODAY[a.status] : STATUS_BG[a.status]}`}
+                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[displayStatus]}`}
                         >
                           {/* Time + duration */}
                           <div className="text-[11px] font-semibold text-olive/80 mb-1.5 leading-none">
                             {time}{svcDuration ? ` · ${svcDuration}` : ''}
                           </div>
                           {/* Client name */}
-                          <div className="text-xs font-semibold text-olive leading-tight truncate">{a.client.name}</div>
+                          <Link
+                            href={`/clientes/${a.client.id}`}
+                            onClick={e => e.stopPropagation()}
+                            className="text-xs font-semibold text-olive leading-tight truncate block hover:text-blossom-dark hover:underline transition-colors"
+                          >
+                            {a.client.name}
+                          </Link>
                           {/* Service */}
                           <div className="text-[10px] text-olive/60 truncate mt-0.5 leading-tight">{a.service}</div>
                           {/* Status badge + notes icon */}
                           <div className="flex items-center justify-between mt-2">
-                            <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${STATUS_BADGE[a.status]}`}>
-                              {STATUS_LABEL[a.status]}
+                            <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${STATUS_BADGE[displayStatus]}`}>
+                              {STATUS_LABEL[displayStatus]}
                             </span>
                             {a.sessionNotes && (
                               <FileText size={9} className="text-olive/40 shrink-0" />
@@ -402,6 +419,7 @@ export default function AgendaPage() {
           onNewAppointment={() => setShowModal(true)}
           onEdit={openEdit}
           onDelete={handleDelete}
+          getDisplayStatus={(a) => getDisplayStatus(a, services, today)}
         />
       )}
 

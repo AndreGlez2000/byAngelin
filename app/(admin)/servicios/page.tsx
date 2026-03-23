@@ -191,7 +191,7 @@ export default function ServiciosPage() {
                 </thead>
                 <tbody>
                   {items.map((s) => (
-                    <tr key={s.id} onClick={() => openEdit(s)} className={`border-b border-olive/6 last:border-b-0 ${!s.isActive ? 'opacity-45' : ''} cursor-pointer hover:bg-parchment/50 transition-colors`}>
+                    <tr key={s.id} onClick={() => openEdit(s)} className={`border-b border-olive/6 last:border-b-0 ${!s.isActive ? 'opacity-45' : ''} cursor-pointer hover:bg-blossom/20 transition-colors`}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-olive">{s.name}</div>
                         {s.description && (
@@ -200,7 +200,7 @@ export default function ServiciosPage() {
                         {s.serviceProducts.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {s.serviceProducts.map(sp => (
-                              <span key={sp.id} className="inline-flex items-center text-[10px] bg-moss/10 border border-moss/20 text-olive/60 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              <span key={sp.id} className="inline-flex items-center text-[10px] bg-moss/12 border border-moss/25 text-olive px-2 py-0.5 rounded-full whitespace-nowrap">
                                 {sp.product.name} · {sp.quantityUsed}{sp.product.unit}
                               </span>
                             ))}

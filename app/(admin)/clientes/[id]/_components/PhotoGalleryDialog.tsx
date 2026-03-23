@@ -1,6 +1,6 @@
 'use client'
-import { useRef } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Camera, X } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 
 type Photo = {
@@ -27,7 +27,6 @@ type Props = {
   onClose: () => void
   onPhotoClick: (photo: Photo) => void
   onUploadDone: () => void
-  onDeleteDone: () => void
 }
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -38,23 +37,35 @@ function formatDate(iso: string) {
 }
 
 export function PhotoGalleryDialog({
-  clientId, clientName, groups, allPhotos, onClose, onPhotoClick, onUploadDone, onDeleteDone,
+  clientId, clientName, groups, allPhotos, onClose, onPhotoClick, onUploadDone,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const uploadApptIdRef = useRef<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const totalPhotos = allPhotos.length
   const totalSessions = groups.filter(g => g.appointmentId !== null).length
 
   function openPicker(appointmentId: string | null) {
+    if (uploading) return
     uploadApptIdRef.current = appointmentId
     inputRef.current?.click()
+  }
+
+  function openCamera(appointmentId: string | null) {
+    if (uploading) return
+    uploadApptIdRef.current = appointmentId
+    cameraInputRef.current?.click()
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
+    setUploading(true)
+    setUploadError(null)
     try {
       const compressed = await imageCompression(file, {
         maxSizeMB: 0.4,
@@ -66,16 +77,17 @@ export function PhotoGalleryDialog({
       fd.append('file', compressed, 'photo.webp')
       if (uploadApptIdRef.current) fd.append('appointmentId', uploadApptIdRef.current)
       const res = await fetch(`/api/clients/${clientId}/photos`, { method: 'POST', body: fd })
-      if (res.ok) onUploadDone()
+      if (res.ok) {
+        onUploadDone()
+      } else {
+        setUploadError('Error al subir. Verifica la configuración de almacenamiento.')
+      }
     } catch (err) {
       console.error('Upload failed', err)
+      setUploadError('Error al subir la foto.')
+    } finally {
+      setUploading(false)
     }
-  }
-
-  async function handleDelete(photoId: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    const res = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' })
-    if (res.ok) onDeleteDone()
   }
 
   return (
@@ -88,25 +100,42 @@ export function PhotoGalleryDialog({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-olive/10 shrink-0">
-          <div>
-            <div className="font-display text-base text-olive italic font-bold">Fotos — {clientName}</div>
-            <div className="text-[10px] text-olive/40 mt-0.5">{totalPhotos} fotos · {totalSessions} sesiones</div>
+        <div className="px-5 pt-4 pb-0 border-b border-olive/10 shrink-0">
+          <div className="flex items-center justify-between pb-4">
+            <div>
+              <div className="font-display text-base text-olive italic font-bold">Fotos — {clientName}</div>
+              <div className="text-[10px] text-olive/40 mt-0.5">{totalPhotos} fotos · {totalSessions} sesiones</div>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Camera button — mobile only */}
+              <button
+                onClick={() => openCamera(null)}
+                disabled={uploading}
+                className="md:hidden w-8 h-8 rounded-lg bg-blossom-dark/10 border border-blossom/25 flex items-center justify-center text-blossom-dark disabled:opacity-50"
+                title="Tomar foto"
+              >
+                <Camera size={15} />
+              </button>
+              <button
+                onClick={() => openPicker(null)}
+                disabled={uploading}
+                className="flex items-center gap-1.5 bg-blossom-dark text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {uploading
+                  ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Subiendo…</>
+                  : '+ Subir foto'}
+              </button>
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-full bg-olive/[0.08] hover:bg-olive/15 flex items-center justify-center text-olive/50 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => openPicker(null)}
-              className="flex items-center gap-1.5 bg-blossom-dark text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blossom transition-colors"
-            >
-              + Subir foto
-            </button>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-full bg-olive/[0.08] hover:bg-olive/15 flex items-center justify-center text-olive/50 transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          {uploadError && (
+            <div className="text-[10px] text-blossom-dark pb-3">{uploadError}</div>
+          )}
         </div>
 
         {/* Body */}
@@ -130,12 +159,23 @@ export function PhotoGalleryDialog({
                     <span className="text-[10px] text-olive/40 ml-2">{formatDate(group.date)}</span>
                   )}
                 </div>
-                <button
-                  onClick={() => openPicker(group.appointmentId)}
-                  className="text-[10px] text-blossom-dark border border-blossom/25 bg-blossom/[0.08] px-2.5 py-1 rounded-full hover:bg-blossom/15 transition-colors shrink-0"
-                >
-                  + Agregar
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => openCamera(group.appointmentId)}
+                    disabled={uploading}
+                    className="md:hidden w-6 h-6 rounded-md bg-blossom/[0.08] border border-blossom/20 flex items-center justify-center text-blossom-dark disabled:opacity-50"
+                    title="Tomar foto"
+                  >
+                    <Camera size={12} />
+                  </button>
+                  <button
+                    onClick={() => openPicker(group.appointmentId)}
+                    disabled={uploading}
+                    className="text-[10px] text-blossom-dark border border-blossom/25 bg-blossom/[0.08] px-2.5 py-1 rounded-full hover:bg-blossom/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    + Agregar
+                  </button>
+                </div>
               </div>
 
               {/* Photos */}
@@ -147,19 +187,11 @@ export function PhotoGalleryDialog({
                     <button
                       key={photo.id}
                       onClick={() => onPhotoClick(photo)}
-                      className="relative aspect-square rounded-lg overflow-hidden bg-olive/10 group"
+                      className="relative aspect-square rounded-lg overflow-hidden bg-olive/10 active:scale-95 transition-transform"
                     >
                       {photo.url
                         ? <img src={photo.url} alt="" className="w-full h-full object-cover" />
                         : <div className="w-full h-full bg-olive/10" />}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button
-                          onClick={(e) => handleDelete(photo.id, e)}
-                          className="w-7 h-7 rounded-md bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
                     </button>
                   ))}
                 </div>
@@ -168,13 +200,8 @@ export function PhotoGalleryDialog({
           ))}
         </div>
 
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
       </div>
     </div>
   )

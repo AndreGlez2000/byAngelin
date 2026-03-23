@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import imageCompression from 'browser-image-compression'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Pencil, ClipboardList, Trash2 } from 'lucide-react'
+import { Camera, ImageIcon, Plus, Pencil, ClipboardList, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { formatPhone } from '@/lib/utils'
 import { PhotoStrip } from './_components/PhotoStrip'
@@ -120,6 +121,10 @@ export default function ClientDetailPage() {
   const [allPhotos, setAllPhotos] = useState<Photo[]>([])
   const [showGallery, setShowGallery] = useState(false)
   const [lightboxPhotoId, setLightboxPhotoId] = useState<string | null>(null)
+  const apptPhotoInputRef = useRef<HTMLInputElement>(null)
+  const apptCameraInputRef = useRef<HTMLInputElement>(null)
+  const [apptPhotoUploading, setApptPhotoUploading] = useState(false)
+  const [apptPhotoUploadError, setApptPhotoUploadError] = useState<string | null>(null)
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${id}`)
@@ -257,6 +262,28 @@ export default function ClientDetailPage() {
     loadClient()
   }
 
+  async function handleApptPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !editingAppt) return
+    e.target.value = ''
+    setApptPhotoUploading(true)
+    setApptPhotoUploadError(null)
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.4, maxWidthOrHeight: 1200, fileType: 'image/webp', useWebWorker: true,
+      })
+      const fd = new FormData()
+      fd.append('file', compressed, 'photo.webp')
+      fd.append('appointmentId', editingAppt.id)
+      const res = await fetch(`/api/clients/${id}/photos`, { method: 'POST', body: fd })
+      if (res.ok) { loadPhotos() } else { setApptPhotoUploadError('Error al subir la foto.') }
+    } catch {
+      setApptPhotoUploadError('Error al subir la foto.')
+    } finally {
+      setApptPhotoUploading(false)
+    }
+  }
+
   async function handleLightboxDelete(photoId: string) {
     await fetch(`/api/photos/${photoId}`, { method: 'DELETE' })
     setLightboxPhotoId(null)
@@ -388,6 +415,7 @@ export default function ClientDetailPage() {
             <div className="space-y-3">
               {client.appointments.map(a => {
                 const d = new Date(a.date)
+                const apptPhotoCount = photoGroups.find(g => g.appointmentId === a.id)?.photos.length ?? 0
                 return (
                   <div
                     key={a.id}
@@ -413,6 +441,12 @@ export default function ClientDetailPage() {
                           )}
                           {a.sessionNotes && (
                             <p className="text-xs text-olive/40 mt-1 italic line-clamp-2">{a.sessionNotes}</p>
+                          )}
+                          {apptPhotoCount > 0 && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <ImageIcon size={10} className="text-olive/30" />
+                              <span className="text-[10px] text-olive/30">{apptPhotoCount}</span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -453,7 +487,6 @@ export default function ClientDetailPage() {
           onClose={() => setShowGallery(false)}
           onPhotoClick={(photo) => setLightboxPhotoId(photo.id)}
           onUploadDone={loadPhotos}
-          onDeleteDone={loadPhotos}
         />
       )}
 
@@ -590,6 +623,60 @@ export default function ClientDetailPage() {
                   className="w-full border border-olive/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
                 />
               </div>
+              {editingAppt && (() => {
+                const apptPhotos = photoGroups.find(g => g.appointmentId === editingAppt.id)?.photos ?? []
+                return (
+                  <div className="border-t border-olive/10 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] text-olive/50 uppercase tracking-widest">Fotos de esta cita</label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={apptPhotoUploading}
+                          onClick={() => apptCameraInputRef.current?.click()}
+                          className="md:hidden w-6 h-6 rounded-md bg-blossom/[0.08] border border-blossom/20 flex items-center justify-center text-blossom-dark disabled:opacity-50"
+                          title="Tomar foto"
+                        >
+                          <Camera size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={apptPhotoUploading}
+                          onClick={() => apptPhotoInputRef.current?.click()}
+                          className="text-[10px] text-blossom-dark border border-blossom/25 bg-blossom/[0.08] px-2.5 py-1 rounded-full hover:bg-blossom/15 transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {apptPhotoUploading
+                            ? <><span className="w-2.5 h-2.5 border-2 border-blossom/30 border-t-blossom-dark rounded-full animate-spin" /> Subiendo…</>
+                            : '+ Agregar'}
+                        </button>
+                      </div>
+                    </div>
+                    {apptPhotos.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {apptPhotos.map(photo => (
+                          <button
+                            key={photo.id}
+                            type="button"
+                            onClick={() => { setShowApptModal(false); setLightboxPhotoId(photo.id) }}
+                            className="w-14 h-14 rounded-lg overflow-hidden bg-olive/10 shrink-0 hover:ring-2 hover:ring-blossom transition-all"
+                          >
+                            {photo.url
+                              ? <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                              : <div className="w-full h-full bg-olive/10" />}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-olive/35">Sin fotos en esta cita.</p>
+                    )}
+                    {apptPhotoUploadError && (
+                      <p className="text-[10px] text-blossom-dark mt-1">{apptPhotoUploadError}</p>
+                    )}
+                    <input ref={apptPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleApptPhotoUpload} />
+                    <input ref={apptCameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleApptPhotoUpload} />
+                  </div>
+                )
+              })()}
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
