@@ -1,33 +1,6 @@
-'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { getDashboardMetrics } from '@/lib/queries'
 import { TrendingUp, TrendingDown, AlertTriangle, Package } from 'lucide-react'
-
-type RevenueByService = { service: string; revenue: number; count: number }
-type TodayAppointment = {
-  id: string
-  service: string
-  date: string
-  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-  client: { id: string; name: string }
-}
-type LowStockItem = {
-  id: string
-  name: string
-  brand: string | null
-  unit: string
-  stock: number
-  lowStockAlert: number
-}
-type Metrics = {
-  revenueThisMonth: number
-  revenueLastMonth: number
-  appointmentsThisMonth: number
-  appointmentsLastMonth: number
-  revenueByService: RevenueByService[]
-  todayAppointments: TodayAppointment[]
-  lowStock: LowStockItem[]
-}
+import Link from 'next/link'
 
 function mxn(n: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -39,26 +12,8 @@ function pctChange(current: number, prev: number): { value: number; up: boolean 
   return { value: Math.abs(value), up: current >= prev }
 }
 
-export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<Metrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-
-  useEffect(() => {
-    fetch('/api/dashboard/metrics')
-      .then(r => r.json())
-      .then(data => { setMetrics(data); setLoading(false) })
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-olive/40 text-sm">Cargando…</div>
-      </div>
-    )
-  }
-
-  if (!metrics) return null
+export default async function DashboardPage() {
+  const metrics = await getDashboardMetrics()
 
   const revChange = pctChange(metrics.revenueThisMonth, metrics.revenueLastMonth)
   const apptChange = pctChange(metrics.appointmentsThisMonth, metrics.appointmentsLastMonth)
@@ -130,10 +85,10 @@ export default function DashboardPage() {
                   a.status === 'COMPLETED' ? 'bg-moss/5' :
                   a.status === 'CANCELLED' ? 'opacity-60' : ''
                 return (
-                  <button
+                  <Link
                     key={a.id}
-                    onClick={() => router.push(`/clientes/${a.client.id}`)}
-                    className={`w-full text-left px-4 py-3 flex items-center gap-3 border-l-[3px] hover:bg-olive/5 transition-colors ${borderColor} ${bgColor}`}
+                    href={`/clientes/${a.client.id}`}
+                    className={`block w-full text-left px-4 py-3 flex items-center gap-3 border-l-[3px] hover:bg-olive/5 transition-colors ${borderColor} ${bgColor}`}
                   >
                     <div className={`text-[11px] font-bold shrink-0 w-9 ${
                       a.status === 'COMPLETED' ? 'text-moss' : a.status === 'CANCELLED' ? 'text-olive/30' : 'text-moss'
@@ -150,14 +105,14 @@ export default function DashboardPage() {
                     {a.status === 'COMPLETED' && (
                       <span className="text-[10px] bg-moss/10 text-moss rounded px-1.5 py-0.5 font-medium shrink-0">✓</span>
                     )}
-                  </button>
+                  </Link>
                 )
               })}
             </div>
           )}
         </div>
 
-        {/* Stock bajo — scrollable */}
+        {/* Stock bajo */}
         <div className="bg-white rounded-xl shadow-card overflow-hidden">
           <div className="px-4 py-3 border-b border-olive/8 flex items-center gap-2">
             {metrics.lowStock.length > 0 && (
