@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { Plus, Pencil, ClipboardList, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { formatPhone } from '@/lib/utils'
+import { PhotoStrip } from './_components/PhotoStrip'
+import { PhotoGalleryDialog } from './_components/PhotoGalleryDialog'
+import { PhotoLightbox } from './_components/PhotoLightbox'
 
 type SkinProfile = {
   id: string; fecha: string; edad: number | null
@@ -25,6 +28,20 @@ type Client = {
   skinProfile: SkinProfile | null; appointments: Appointment[]
 }
 type Service = { id: string; name: string; price: number }
+type Photo = {
+  id: string
+  url: string | null
+  createdAt: string
+  appointmentId: string | null
+  service: string | null
+  date: string | null
+}
+type PhotoGroup = {
+  appointmentId: string | null
+  service: string | null
+  date: string | null
+  photos: Photo[]
+}
 
 const STATUS_LABEL = { CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
 const STATUS_COLOR = {
@@ -99,6 +116,10 @@ export default function ClientDetailPage() {
   const [apptForm, setApptForm] = useState<ApptForm>({ service: '', date: '', status: 'CONFIRMED', pricePaid: '', sessionNotes: '' })
   const [savingAppt, setSavingAppt] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null)
+  const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([])
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([])
+  const [showGallery, setShowGallery] = useState(false)
+  const [lightboxPhotoId, setLightboxPhotoId] = useState<string | null>(null)
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${id}`)
@@ -106,8 +127,17 @@ export default function ClientDetailPage() {
     setClient(await res.json())
   }
 
+  async function loadPhotos() {
+    const res = await fetch(`/api/clients/${id}/photos`)
+    if (!res.ok) return
+    const data = await res.json()
+    setPhotoGroups(data.groups)
+    setAllPhotos(data.allPhotos)
+  }
+
   useEffect(() => {
     loadClient()
+    loadPhotos()
     fetch('/api/services?active=true').then(r => r.json()).then(setServices)
   }, [id])
 
@@ -227,6 +257,12 @@ export default function ClientDetailPage() {
     loadClient()
   }
 
+  async function handleLightboxDelete(photoId: string) {
+    await fetch(`/api/photos/${photoId}`, { method: 'DELETE' })
+    setLightboxPhotoId(null)
+    loadPhotos()
+  }
+
   if (!client) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -329,6 +365,15 @@ export default function ClientDetailPage() {
               </button>
             </div>
           )}
+
+          <div className="pt-2">
+            <PhotoStrip
+              clientId={client.id}
+              photos={allPhotos}
+              onUploadDone={loadPhotos}
+              onOpenGallery={() => setShowGallery(true)}
+            />
+          </div>
         </div>
 
         {/* Right panel — appointment history */}
@@ -344,7 +389,11 @@ export default function ClientDetailPage() {
               {client.appointments.map(a => {
                 const d = new Date(a.date)
                 return (
-                  <div key={a.id} className="bg-white rounded-xl shadow-card p-4">
+                  <div
+                    key={a.id}
+                    onClick={() => openEditAppt(a)}
+                    className="bg-white rounded-xl shadow-card p-4 cursor-pointer hover:shadow-md hover:ring-1 hover:ring-olive/15 transition-shadow"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="text-center shrink-0 w-10">
@@ -372,13 +421,7 @@ export default function ClientDetailPage() {
                           {STATUS_LABEL[a.status]}
                         </span>
                         <button
-                          onClick={() => openEditAppt(a)}
-                          className="p-1.5 rounded hover:bg-olive/8 text-olive/35 hover:text-olive transition-colors"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleApptDelete(a.id)}
+                          onClick={e => { e.stopPropagation(); handleApptDelete(a.id) }}
                           className="p-1.5 rounded hover:bg-blossom/15 text-olive/25 hover:text-blossom-dark transition-colors"
                         >
                           <Trash2 size={13} />
@@ -398,6 +441,28 @@ export default function ClientDetailPage() {
           message={`¿Eliminar "${confirmDelete.label}"? Esta acción no se puede deshacer.`}
           onConfirm={confirmDoDelete}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {showGallery && (
+        <PhotoGalleryDialog
+          clientId={client.id}
+          clientName={client.name}
+          groups={photoGroups}
+          allPhotos={allPhotos}
+          onClose={() => setShowGallery(false)}
+          onPhotoClick={(photo) => setLightboxPhotoId(photo.id)}
+          onUploadDone={loadPhotos}
+          onDeleteDone={loadPhotos}
+        />
+      )}
+
+      {lightboxPhotoId && (
+        <PhotoLightbox
+          photos={allPhotos}
+          initialId={lightboxPhotoId}
+          onClose={() => setLightboxPhotoId(null)}
+          onDelete={handleLightboxDelete}
         />
       )}
 

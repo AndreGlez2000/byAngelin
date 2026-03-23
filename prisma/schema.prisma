@@ -21,6 +21,7 @@ model Client {
   createdAt    DateTime      @default(now())
   appointments Appointment[]
   skinProfile  SkinProfile?
+  photos       ClientPhoto[]
 }
 
 model SkinProfile {
@@ -66,6 +67,7 @@ model Appointment {
   createdAt                DateTime          @default(now())
   client                   Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   inventoryLogs            InventoryLog[]
+  photos                   ClientPhoto[]
 }
 
 enum AppointmentStatus {
@@ -123,5 +125,15 @@ model InventoryLog {
   reason        String
   createdAt     DateTime    @default(now())
   product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+}
+
+model ClientPhoto {
+  id            String       @id @default(cuid())
+  clientId      String
+  appointmentId String?
+  storageKey    String
+  createdAt     DateTime     @default(now())
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 }
