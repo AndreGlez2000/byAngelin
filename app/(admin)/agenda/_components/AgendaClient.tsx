@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { parseDurationMin, findOverlap } from "@/lib/appointments";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -159,6 +160,42 @@ export function AgendaClient({
     id: string;
     label: string;
   } | null>(null);
+
+  const createOverlapError = useMemo(() => {
+    if (!form.date || !form.time || !form.service) return null;
+    const svc = services.find((s) => s.name === form.service);
+    if (!svc) return null;
+    const start = new Date(`${form.date}T${form.time}`);
+    return findOverlap(
+      start,
+      parseDurationMin(svc.duration),
+      appointments,
+      services,
+    );
+  }, [form.date, form.time, form.service, appointments, services]);
+
+  const editOverlapError = useMemo(() => {
+    if (!editForm.date || !editForm.time || !editForm.service || !editingAppt)
+      return null;
+    const svcName = editForm.service;
+    const svc = services.find((s) => s.name === svcName);
+    if (!svc) return null;
+    const start = new Date(`${editForm.date}T${editForm.time}`);
+    return findOverlap(
+      start,
+      parseDurationMin(svc.duration),
+      appointments,
+      services,
+      editingAppt.id,
+    );
+  }, [
+    editForm.date,
+    editForm.time,
+    editForm.service,
+    editingAppt,
+    appointments,
+    services,
+  ]);
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -757,6 +794,30 @@ export function AgendaClient({
                   />
                 </div>
               </div>
+              {editOverlapError && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠ Ya hay una cita de &quot;{editOverlapError.service}&quot; de{" "}
+                  {new Date(editOverlapError.date).toLocaleTimeString("es-MX", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}{" "}
+                  a{" "}
+                  {new Date(
+                    new Date(editOverlapError.date).getTime() +
+                      parseDurationMin(
+                        services.find(
+                          (s) => s.name === editOverlapError.service,
+                        )?.duration ?? "60 min",
+                      ) *
+                        60_000,
+                  ).toLocaleTimeString("es-MX", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </p>
+              )}
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
                   Estado
@@ -800,7 +861,7 @@ export function AgendaClient({
                 </button>
                 <button
                   type="submit"
-                  disabled={savingEdit}
+                  disabled={savingEdit || !!editOverlapError}
                   className="flex-1 bg-blossom-dark text-white text-sm py-2.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-50"
                 >
                   {savingEdit ? "Guardando…" : "Guardar Cambios"}
@@ -921,6 +982,34 @@ export function AgendaClient({
                   />
                 </div>
               </div>
+              {createOverlapError && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠ Ya hay una cita de &quot;{createOverlapError.service}&quot;
+                  de{" "}
+                  {new Date(createOverlapError.date).toLocaleTimeString(
+                    "es-MX",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    },
+                  )}{" "}
+                  a{" "}
+                  {new Date(
+                    new Date(createOverlapError.date).getTime() +
+                      parseDurationMin(
+                        services.find(
+                          (s) => s.name === createOverlapError.service,
+                        )?.duration ?? "60 min",
+                      ) *
+                        60_000,
+                  ).toLocaleTimeString("es-MX", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </p>
+              )}
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
                   Notas (opcional)
@@ -970,7 +1059,7 @@ export function AgendaClient({
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || !!createOverlapError}
                   className="flex-1 bg-blossom-dark text-white text-sm py-2.5 rounded-lg hover:bg-blossom transition-colors disabled:opacity-50"
                 >
                   {saving ? "Guardando…" : "Guardar Cita"}
