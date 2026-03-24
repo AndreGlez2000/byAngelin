@@ -140,7 +140,6 @@ export function AgendaClient({
   const [form, setForm] = useState({
     clientId: "",
     service: "",
-    customService: "",
     date: "",
     time: "",
     sessionNotes: "",
@@ -150,7 +149,6 @@ export function AgendaClient({
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [editForm, setEditForm] = useState({
     service: "",
-    customService: "",
     date: "",
     time: "",
     status: "CONFIRMED" as Appointment["status"],
@@ -217,9 +215,10 @@ export function AgendaClient({
     e.preventDefault();
     setSaving(true);
     const dateTime =
-      form.date && form.time ? `${form.date}T${form.time}` : form.date;
-    const serviceName =
-      form.service === "__custom__" ? form.customService : form.service;
+      form.date && form.time
+        ? new Date(`${form.date}T${form.time}`).toISOString()
+        : form.date;
+    const serviceName = form.service;
     await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -234,7 +233,6 @@ export function AgendaClient({
     setForm({
       clientId: "",
       service: "",
-      customService: "",
       date: "",
       time: "",
       sessionNotes: "",
@@ -247,11 +245,9 @@ export function AgendaClient({
   function openEdit(a: Appointment) {
     const d = new Date(a.date);
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    const isCustom = !services.find((s) => s.name === a.service);
     setEditingAppt(a);
     setEditForm({
-      service: isCustom ? "__custom__" : a.service,
-      customService: isCustom ? a.service : "",
+      service: a.service,
       date: local.toISOString().slice(0, 10),
       time: local.toISOString().slice(11, 16),
       status: a.status,
@@ -263,11 +259,10 @@ export function AgendaClient({
     e.preventDefault();
     if (!editingAppt) return;
     setSavingEdit(true);
-    const serviceName =
-      editForm.service === "__custom__"
-        ? editForm.customService
-        : editForm.service;
-    const dateTime = `${editForm.date}T${editForm.time}`;
+    const serviceName = editForm.service;
+    const dateTime = new Date(
+      `${editForm.date}T${editForm.time}`,
+    ).toISOString();
     const wasCompleted =
       editForm.status === "COMPLETED" && editingAppt.status !== "COMPLETED";
     if (wasCompleted) {
@@ -711,7 +706,6 @@ export function AgendaClient({
                     setEditForm((f) => ({
                       ...f,
                       service: e.target.value,
-                      customService: "",
                     }))
                   }
                   className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
@@ -731,24 +725,7 @@ export function AgendaClient({
                       </optgroup>
                     );
                   })}
-                  <option value="__custom__">
-                    Otro (escribir manualmente)…
-                  </option>
                 </select>
-                {editForm.service === "__custom__" && (
-                  <input
-                    required
-                    placeholder="Nombre del servicio…"
-                    value={editForm.customService}
-                    onChange={(e) =>
-                      setEditForm((f) => ({
-                        ...f,
-                        customService: e.target.value,
-                      }))
-                    }
-                    className="mt-1.5 w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
-                  />
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -892,7 +869,6 @@ export function AgendaClient({
                     setForm((f) => ({
                       ...f,
                       service: e.target.value,
-                      customService: "",
                     }))
                   }
                   className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
@@ -913,21 +889,7 @@ export function AgendaClient({
                       </optgroup>
                     );
                   })}
-                  <option value="__custom__">
-                    Otro (escribir manualmente)…
-                  </option>
                 </select>
-                {form.service === "__custom__" && (
-                  <input
-                    required
-                    placeholder="Nombre del servicio…"
-                    value={form.customService}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, customService: e.target.value }))
-                    }
-                    className="mt-1.5 w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
-                  />
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
