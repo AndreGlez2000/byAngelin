@@ -156,6 +156,10 @@ export function AgendaClient({
     sessionNotes: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [createServerError, setCreateServerError] = useState<string | null>(
+    null,
+  );
+  const [editServerError, setEditServerError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
     label: string;
@@ -251,12 +255,13 @@ export function AgendaClient({
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setCreateServerError(null);
     const dateTime =
       form.date && form.time
         ? new Date(`${form.date}T${form.time}`).toISOString()
         : form.date;
     const serviceName = form.service;
-    await fetch("/api/appointments", {
+    const res = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -266,6 +271,18 @@ export function AgendaClient({
         sessionNotes: form.sessionNotes || null,
       }),
     });
+    if (res.status === 409) {
+      const data = await res.json();
+      setCreateServerError(data.error || "Ya existe una cita en ese horario");
+      setSaving(false);
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json();
+      setCreateServerError(data.error || "Error al guardar la cita");
+      setSaving(false);
+      return;
+    }
     setShowModal(false);
     setForm({
       clientId: "",
@@ -296,6 +313,7 @@ export function AgendaClient({
     e.preventDefault();
     if (!editingAppt) return;
     setSavingEdit(true);
+    setEditServerError(null);
     const serviceName = editForm.service;
     const dateTime = new Date(
       `${editForm.date}T${editForm.time}`,
@@ -313,7 +331,7 @@ export function AgendaClient({
         sessionNotes: editForm.sessionNotes,
       });
       // also patch service/date while at it
-      await fetch(`/api/appointments/${editingAppt.id}`, {
+      const resCompleted = await fetch(`/api/appointments/${editingAppt.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -321,11 +339,23 @@ export function AgendaClient({
           date: new Date(dateTime).toISOString(),
         }),
       });
+      if (resCompleted.status === 409) {
+        const data = await resCompleted.json();
+        setEditServerError(data.error || "Ya existe una cita en ese horario");
+        setSavingEdit(false);
+        return;
+      }
+      if (!resCompleted.ok) {
+        const data = await resCompleted.json();
+        setEditServerError(data.error || "Error al guardar la cita");
+        setSavingEdit(false);
+        return;
+      }
       setSavingEdit(false);
       setEditingAppt(null);
       return;
     }
-    await fetch(`/api/appointments/${editingAppt.id}`, {
+    const res = await fetch(`/api/appointments/${editingAppt.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -335,6 +365,18 @@ export function AgendaClient({
         sessionNotes: editForm.sessionNotes || null,
       }),
     });
+    if (res.status === 409) {
+      const data = await res.json();
+      setEditServerError(data.error || "Ya existe una cita en ese horario");
+      setSavingEdit(false);
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json();
+      setEditServerError(data.error || "Error al guardar la cita");
+      setSavingEdit(false);
+      return;
+    }
     setSavingEdit(false);
     setEditingAppt(null);
     fetchAppointments();
@@ -717,7 +759,10 @@ export function AgendaClient({
                 Editar Cita
               </h2>
               <button
-                onClick={() => setEditingAppt(null)}
+                onClick={() => {
+                  setEditingAppt(null);
+                  setEditServerError(null);
+                }}
                 className="text-olive/30 hover:text-olive/60 text-lg leading-none"
               >
                 ✕
@@ -851,10 +896,16 @@ export function AgendaClient({
                   className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom resize-none"
                 />
               </div>
+              {editServerError && (
+                <p className="text-xs text-red-500 mt-1">⚠ {editServerError}</p>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setEditingAppt(null)}
+                  onClick={() => {
+                    setEditingAppt(null);
+                    setEditServerError(null);
+                  }}
                   className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
                 >
                   Cancelar
@@ -892,7 +943,10 @@ export function AgendaClient({
                 Nueva Cita
               </h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setCreateServerError(null);
+                }}
                 className="text-olive/30 hover:text-olive/60 text-lg leading-none"
               >
                 ✕
@@ -1049,10 +1103,18 @@ export function AgendaClient({
                 ))}
               </div>
 
+              {createServerError && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠ {createServerError}
+                </p>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setCreateServerError(null);
+                  }}
                   className="flex-1 border border-olive/20 text-olive text-sm py-2.5 rounded-lg hover:bg-olive/5 transition-colors"
                 >
                   Cancelar
