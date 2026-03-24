@@ -145,6 +145,32 @@ export async function getClientDetail(id: string) {
   });
 }
 
+export async function getAgendaData(from: Date, to: Date) {
+  const [appointments, clients, services] = await Promise.all([
+    db.appointment.findMany({
+      where: { date: { gte: from, lte: to } },
+      include: { client: { select: { id: true, name: true, phone: true } } },
+      orderBy: { date: "asc" },
+    }),
+    db.client.findMany({
+      select: { id: true, name: true, phone: true },
+      orderBy: { name: "asc" },
+    }),
+    db.service.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        duration: true,
+        price: true,
+      },
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+    }),
+  ]);
+  return { appointments, clients, services };
+}
+
 export async function getServicesWithProducts() {
   return db.service.findMany({
     orderBy: [{ category: "asc" }, { name: "asc" }],
