@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { parseDurationMin, findOverlap } from "@/lib/appointments";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -129,7 +128,6 @@ export function AgendaClient({
   initialClients: any[];
   initialServices: any[];
 }) {
-  const router = useRouter();
   const isMobile = useIsMobile();
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => new Date());
@@ -293,7 +291,6 @@ export function AgendaClient({
     });
     setSaving(false);
     fetchAppointments();
-    router.refresh();
   }
 
   function openEdit(a: Appointment) {
@@ -353,6 +350,7 @@ export function AgendaClient({
       }
       setSavingEdit(false);
       setEditingAppt(null);
+      fetchAppointments();
       return;
     }
     const res = await fetch(`/api/appointments/${editingAppt.id}`, {
@@ -380,7 +378,6 @@ export function AgendaClient({
     setSavingEdit(false);
     setEditingAppt(null);
     fetchAppointments();
-    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -396,7 +393,6 @@ export function AgendaClient({
     await fetch(`/api/appointments/${confirmDelete.id}`, { method: "DELETE" });
     setConfirmDelete(null);
     fetchAppointments();
-    router.refresh();
   }
 
   async function changeStatus(id: string, status: string, serviceName: string) {
@@ -419,7 +415,6 @@ export function AgendaClient({
       body: JSON.stringify({ status }),
     });
     fetchAppointments();
-    router.refresh();
   }
 
   async function handleCompleteWithPayment() {
@@ -437,7 +432,6 @@ export function AgendaClient({
     });
     setPayModal(null);
     fetchAppointments();
-    router.refresh();
   }
 
   const weekLabel = `Semana ${weekStart.getDate()} - ${weekEnd.getDate()} ${MONTHS_SHORT[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
