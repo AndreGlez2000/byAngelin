@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import { deductInventory } from "@/lib/inventory";
 import { AppointmentStatus } from "@prisma/client";
 import { parseDurationMin, findOverlap } from "@/lib/appointments";
+import {
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from "@/lib/google-calendar";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -44,10 +48,10 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  // Fetch current appointment once — used by both overlap check and wasCompleted logic
+  // Fetch current appointment once — used by overlap check, wasCompleted logic, and gcal sync
   const current = await db.appointment.findUnique({
     where: { id },
-    select: { date: true, service: true, status: true },
+    select: { date: true, service: true, status: true, gcalEventId: true },
   });
   if (!current)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -118,6 +122,24 @@ export async function PATCH(req: Request, { params }: Params) {
     await deductInventory(id, appointment.service);
   }
 
+  // Sync Google Calendar when date or service changes
+  if (current.gcalEventId && (date !== undefined || service !== undefined)) {
+    const newStart = date !== undefined ? new Date(date) : current.date;
+    const newService = service !== undefined ? service : current.service;
+    const svcData = await db.service.findFirst({
+      where: { name: newService },
+      select: { duration: true },
+    });
+    const gcalDuration = svcData ? parseDurationMin(svcData.duration) : 60;
+
+    updateCalendarEvent({
+      eventId: current.gcalEventId,
+      summary: `${newService} — ${appointment.client.name}`,
+      start: newStart,
+      durationMin: gcalDuration,
+    }).catch((err) => console.error("[gcal] update failed:", err));
+  }
+
   return NextResponse.json(appointment);
 }
 
@@ -127,6 +149,21 @@ export async function DELETE(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  // Fetch gcalEventId before deletion so we can clean up the calendar event
+  const appt = await db.appointment.findUnique({
+    where: { id },
+    select: { gcalEventId: true },
+  });
+
   await db.appointment.delete({ where: { id } });
+
+  // Fire-and-forget — calendar cleanup does not block the response
+  if (appt?.gcalEventId) {
+    deleteCalendarEvent(appt.gcalEventId).catch((err) =>
+      console.error("[gcal] delete failed:", err),
+    );
+  }
+
   return new NextResponse(null, { status: 204 });
 }
