@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendConfirmationEmail } from "@/lib/email";
 import { parseDurationMin, findOverlap } from "@/lib/appointments";
+import { createCalendarEvent } from "@/lib/google-calendar";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -119,6 +120,23 @@ export async function POST(req: Request) {
     await db.appointment.update({
       where: { id: appointment.id },
       data: { emailConfirmationSent: true },
+    });
+  }
+
+  // Create Google Calendar event — failure does NOT block appointment creation
+  const gcalEventId = await createCalendarEvent({
+    summary: `${service} — ${client?.name ?? "Cliente"}`,
+    start: new Date(date),
+    durationMin,
+  }).catch((err) => {
+    console.error("[gcal] create failed:", err);
+    return null;
+  });
+
+  if (gcalEventId) {
+    await db.appointment.update({
+      where: { id: appointment.id },
+      data: { gcalEventId },
     });
   }
 
