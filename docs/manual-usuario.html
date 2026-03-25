@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manual de Usuario — Angelin Esthetician Studio</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #2d3220;
+    background: #fff;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 48px;
+  }
+
+  /* ── Tipografía ───────────────────────────────── */
+  h1 { font-size: 28px; font-weight: normal; letter-spacing: -0.5px; color: #2d3220; }
+  h2 { font-size: 16px; font-weight: bold; color: #2d3220; margin: 32px 0 10px;
+       padding-bottom: 5px; border-bottom: 1.5px solid #c8bc9a; text-transform: uppercase;
+       letter-spacing: 0.8px; }
+  h3 { font-size: 13px; font-weight: bold; color: #5d6345; margin: 18px 0 6px; }
+  p  { margin-bottom: 10px; }
+  ul, ol { padding-left: 20px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+  strong { color: #2d3220; }
+
+  /* ── Portada ──────────────────────────────────── */
+  .cover {
+    text-align: center;
+    padding: 60px 0 50px;
+    border-bottom: 2px solid #c8bc9a;
+    margin-bottom: 36px;
+    page-break-after: always;
+  }
+  .cover .brand {
+    font-family: 'Georgia', serif;
+    font-size: 42px;
+    color: #a34e62;
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+  }
+  .cover .subtitle {
+    font-size: 13px;
+    color: #8a8a72;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+  .cover .doc-title {
+    font-size: 22px;
+    font-weight: normal;
+    color: #2d3220;
+    margin-bottom: 8px;
+  }
+  .cover .doc-meta {
+    font-size: 11px;
+    color: #a0a07a;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Nota / Aviso ─────────────────────────────── */
+  .note {
+    background: #f5f3ed;
+    border-left: 3px solid #c8bc9a;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #6a6a50;
+  }
+  .note.importante {
+    background: #fff6f8;
+    border-left-color: #e49ab0;
+    color: #7a3a4a;
+  }
+
+  /* ── Pasos ────────────────────────────────────── */
+  .steps { counter-reset: steps; padding-left: 0; list-style: none; }
+  .steps li {
+    counter-increment: steps;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(steps);
+    min-width: 24px; height: 24px;
+    background: #5d6345;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-family: 'Helvetica', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── Tabla ────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th {
+    background: #f5f3ed;
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8a8a72;
+    border-bottom: 1.5px solid #d8d4c8;
+  }
+  td { padding: 7px 10px; border-bottom: 1px solid #eeebe3; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Badge de estado ──────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-family: 'Helvetica', sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+  }
+  .badge.confirmed  { background: #e8f0d8; color: #4a5c20; }
+  .badge.completed  { background: #d8f0e0; color: #1a5c38; }
+  .badge.cancelled  { background: #fce8ec; color: #8c2038; }
+
+  /* ── Separador de sección ─────────────────────── */
+  .section-break { page-break-before: always; }
+
+  /* ── Índice ───────────────────────────────────── */
+  .toc { margin: 24px 0 36px; }
+  .toc ol { list-style: decimal; padding-left: 20px; }
+  .toc li { margin-bottom: 6px; color: #5d6345; }
+  .toc li span { color: #8a8a72; font-size: 11px; float: right; }
+
+  /* ── Print ────────────────────────────────────── */
+  @media print {
+    body { padding: 20px 32px; }
+    .cover { page-break-after: always; }
+    .section-break { page-break-before: always; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+    .note { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ PORTADA ══════════════════════ -->
+<div class="cover">
+  <div class="brand">Angelin</div>
+  <div class="subtitle">Esthetician Studio · Tijuana</div>
+  <div class="doc-title">Manual de Usuario</div>
+  <div class="doc-title" style="font-size:15px; color:#8a8a72; margin-top:4px;">Sistema de Gestión</div>
+  <div class="doc-meta" style="margin-top: 32px;">Versión 1.0 · Marzo 2026</div>
+</div>
+
+<!-- ══════════════════════ ÍNDICE ════════════════════════ -->
+<h2>Contenido</h2>
+<div class="toc">
+  <ol>
+    <li>Acceso al sistema</li>
+    <li>Dashboard</li>
+    <li>Clientes</li>
+    <li>Agenda y Citas</li>
+    <li>Inventario</li>
+    <li>Servicios</li>
+    <li>Correos automáticos</li>
+    <li>Conectar Google Calendar</li>
+    <li>Preguntas frecuentes</li>
+  </ol>
+</div>
+
+<!-- ══════════════════════ 1. ACCESO ══════════════════════ -->
+<div class="section-break"></div>
+<h2>1. Acceso al Sistema</h2>
+
+<p>El sistema es privado. Solo tú tienes acceso.</p>
+
+<h3>Ingresar</h3>
+<ol class="steps">
+  <li>Abre tu navegador y ve a la dirección del sistema.</li>
+  <li>Escribe tu usuario y contraseña.</li>
+  <li>Presiona <strong>Entrar</strong>.</li>
+</ol>
+
+<div class="note importante">
+  No compartas tu contraseña con nadie. Si crees que alguien la conoce, pide a tu desarrollador que la cambie.
+</div>
+
+<h3>Cerrar sesión</h3>
+<p>Presiona tu avatar o nombre en la esquina superior y selecciona <strong>Cerrar sesión</strong>. Siempre cierra sesión si usas el sistema en un dispositivo compartido.</p>
+
+<!-- ══════════════════════ 2. DASHBOARD ═══════════════════ -->
+<h2>2. Dashboard</h2>
+
+<p>La pantalla principal muestra un resumen rápido de tu negocio.</p>
+
+<table>
+  <thead>
+    <tr><th>Tarjeta</th><th>Qué significa</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Ingresos del mes</strong></td><td>Suma de lo cobrado en citas completadas durante el mes actual.</td></tr>
+    <tr><td><strong>Citas del mes</strong></td><td>Cuántas citas tienes agendadas (o completadas) este mes.</td></tr>
+    <tr><td><strong>Clientas activas</strong></td><td>Clientas con al menos una cita en los últimos 3 meses.</td></tr>
+    <tr><td><strong>Alertas de inventario</strong></td><td>Productos con stock por debajo del mínimo configurado.</td></tr>
+  </tbody>
+</table>
+
+<p>También verás la lista de <strong>próximas citas</strong> del día y la semana.</p>
+
+<!-- ══════════════════════ 3. CLIENTES ════════════════════ -->
+<h2>3. Clientes</h2>
+
+<h3>Ver lista de clientes</h3>
+<p>En el menú lateral selecciona <strong>Clientes</strong>. Puedes buscar por nombre o teléfono.</p>
+
+<h3>Agregar clienta nueva</h3>
+<ol class="steps">
+  <li>Presiona el botón <strong>Nueva clienta</strong>.</li>
+  <li>Llena: nombre completo, teléfono (requerido), correo electrónico (opcional).</li>
+  <li>Presiona <strong>Guardar</strong>.</li>
+</ol>
+
+<div class="note">
+  El teléfono es único — no puedes tener dos clientas con el mismo número.
+</div>
+
+<h3>Ver perfil de una clienta</h3>
+<p>Haz clic en el nombre de cualquier clienta para ver:</p>
+<ul>
+  <li><strong>Historial de citas</strong> — todas sus visitas, servicios y notas.</li>
+  <li><strong>Ficha de piel</strong> — diagnóstico cutáneo completo.</li>
+  <li><strong>Fotos</strong> — fotografías de seguimiento.</li>
+</ul>
+
+<h3>Ficha de análisis de piel</h3>
+<ol class="steps">
+  <li>Abre el perfil de la clienta.</li>
+  <li>Selecciona la pestaña <strong>Ficha de piel</strong>.</li>
+  <li>Llena los campos: fototipo, biotipo, sensibilidad, hidratación, etc.</li>
+  <li>Presiona <strong>Guardar ficha</strong>.</li>
+</ol>
+
+<div class="note importante">
+  Si es la primera visita de una clienta, el sistema enviará un aviso en el correo de confirmación pidiéndole llegar 15 minutos antes para completar la ficha en persona.
+</div>
+
+<h3>Agregar fotos de seguimiento</h3>
+<ol class="steps">
+  <li>Abre el perfil de la clienta → pestaña <strong>Fotos</strong>.</li>
+  <li>Presiona <strong>Subir foto</strong>.</li>
+  <li>Selecciona la imagen desde tu dispositivo. Las fotos se comprimen automáticamente.</li>
+</ol>
+
+<!-- ══════════════════════ 4. AGENDA ══════════════════════ -->
+<div class="section-break"></div>
+<h2>4. Agenda y Citas</h2>
+
+<h3>Ver la agenda</h3>
+<p>En el menú selecciona <strong>Agenda</strong>. Verás un calendario mensual con todas las citas. Puedes cambiar entre vista mensual y lista.</p>
+
+<h3>Agendar una cita nueva</h3>
+<ol class="steps">
+  <li>Presiona <strong>Nueva cita</strong> (botón en la parte superior).</li>
+  <li>Selecciona la clienta (busca por nombre).</li>
+  <li>Elige el servicio.</li>
+  <li>Selecciona fecha y hora.</li>
+  <li>Escribe el precio que se cobrará.</li>
+  <li>Indica si es primera visita.</li>
+  <li>Presiona <strong>Confirmar cita</strong>.</li>
+</ol>
+
+<div class="note">
+  Al guardar, el sistema envía automáticamente un correo de confirmación a la clienta (si tiene email registrado) y crea el evento en tu Google Calendar.
+</div>
+
+<h3>Estados de una cita</h3>
+<table>
+  <thead>
+    <tr><th>Estado</th><th>Significado</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge confirmed">Confirmada</span></td>
+      <td>Cita agendada, pendiente de realizarse.</td>
+    </tr>
+    <tr>
+      <td><span class="badge completed">Completada</span></td>
+      <td>La cita ya se realizó. Registra el pago aquí.</td>
+    </tr>
+    <tr>
+      <td><span class="badge cancelled">Cancelada</span></td>
+      <td>La cita fue cancelada. No cuenta para ingresos.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Completar una cita y registrar pago</h3>
+<ol class="steps">
+  <li>Abre la cita desde la agenda.</li>
+  <li>Cambia el estado a <strong>Completada</strong>.</li>
+  <li>Registra el monto cobrado y el método de pago (efectivo, transferencia, etc.).</li>
+  <li>Agrega notas de sesión si lo deseas.</li>
+  <li>Guarda. El monto se sumará a los ingresos del dashboard.</li>
+</ol>
+
+<h3>Modificar o cancelar una cita</h3>
+<ol class="steps">
+  <li>Abre la cita desde la agenda.</li>
+  <li>Edita los campos necesarios <em>o</em> cambia el estado a <strong>Cancelada</strong>.</li>
+  <li>Guarda. Si cambia la fecha/hora, el evento de Google Calendar se actualiza automáticamente.</li>
+</ol>
+
+<!-- ══════════════════════ 5. INVENTARIO ══════════════════ -->
+<h2>5. Inventario</h2>
+
+<h3>Ver productos</h3>
+<p>En el menú selecciona <strong>Inventario</strong>. Verás todos tus productos con su stock actual. Los productos <strong>marcados en rojo o naranja</strong> están por debajo del nivel mínimo configurado.</p>
+
+<h3>Registrar restock (compra de producto)</h3>
+<ol class="steps">
+  <li>Encuentra el producto en la lista.</li>
+  <li>Presiona el botón de <strong>Restock</strong> (ícono de caja o "+").</li>
+  <li>Escribe la cantidad que compraste.</li>
+  <li>Confirma. El stock se actualizará.</li>
+</ol>
+
+<h3>¿Cómo se descuenta el stock?</h3>
+<p>Cuando marcas una cita como <strong>Completada</strong>, el sistema descuenta automáticamente los ingredientes correspondientes al servicio realizado. No necesitas hacer nada manual.</p>
+
+<h3>Agregar producto nuevo</h3>
+<ol class="steps">
+  <li>Presiona <strong>Nuevo producto</strong>.</li>
+  <li>Llena: nombre, marca, unidad (ml, gr, aplicaciones), capacidad por envase, costo por envase.</li>
+  <li>Guarda.</li>
+</ol>
+
+<!-- ══════════════════════ 6. SERVICIOS ═══════════════════ -->
+<div class="section-break"></div>
+<h2>6. Servicios</h2>
+
+<p>En el menú selecciona <strong>Servicios</strong>. Aquí están todos los tratamientos que ofreces con su duración y precio.</p>
+
+<h3>Editar un servicio</h3>
+<ol class="steps">
+  <li>Haz clic en el servicio que quieres editar.</li>
+  <li>Modifica nombre, precio, duración o descripción.</li>
+  <li>Guarda.</li>
+</ol>
+
+<h3>Costo de ingredientes</h3>
+<p>Cada servicio calcula automáticamente su costo de ingredientes según los productos vinculados. Esto te ayuda a saber tu margen real por tratamiento.</p>
+
+<!-- ══════════════════════ 7. CORREOS ══════════════════════ -->
+<h2>7. Correos Automáticos</h2>
+
+<p>El sistema envía correos a tus clientas de forma automática desde <strong>angelinesthetician@gmail.com</strong>.</p>
+
+<table>
+  <thead>
+    <tr><th>Correo</th><th>Cuándo se envía</th><th>Qué incluye</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Confirmación de cita</strong></td>
+      <td>Inmediatamente al agendar.</td>
+      <td>Servicio, fecha, hora, precio. Si es primera visita: aviso de llegar 15 min antes.</td>
+    </tr>
+    <tr>
+      <td><strong>Recordatorio</strong></td>
+      <td>El día anterior a la cita, automáticamente.</td>
+      <td>Resumen de la cita con fecha, hora y precio.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  Solo se envía correo si la clienta tiene email registrado. Si una clienta no tiene email, no recibe notificaciones y el sistema continúa funcionando normalmente.
+</div>
+
+<div class="note importante">
+  No respondas correos enviados por el sistema — son correos automáticos. Si una clienta necesita cambiar su cita, que te contacte directo (WhatsApp o llamada).
+</div>
+
+<!-- ══════════════════════ 8. GOOGLE CALENDAR ═════════════ -->
+<h2>8. Conectar Google Calendar</h2>
+
+<p>El sistema puede sincronizar tus citas con tu Google Calendar. Solo necesitas conectarlo una vez.</p>
+
+<ol class="steps">
+  <li>En el menú lateral, busca la opción <strong>Configuración</strong> o ve directamente a <strong>/setup/calendar</strong>.</li>
+  <li>Presiona <strong>Conectar Google Calendar</strong>.</li>
+  <li>Google te pedirá que inicies sesión con tu cuenta y otorgues permiso.</li>
+  <li>Acepta. A partir de ese momento, cada cita nueva creará un evento en tu calendario.</li>
+</ol>
+
+<div class="note">
+  Si ya tienes el calendario conectado, no necesitas hacer nada. Las citas nuevas, modificaciones y cancelaciones se reflejan automáticamente.
+</div>
+
+<!-- ══════════════════════ 9. FAQ ═════════════════════════ -->
+<div class="section-break"></div>
+<h2>9. Preguntas Frecuentes</h2>
+
+<h3>¿Qué pasa si agendo una cita sin email de la clienta?</h3>
+<p>La cita se guarda normalmente. El sistema no envía correo, pero el evento de Google Calendar sí se crea.</p>
+
+<h3>¿Puedo usar el sistema desde mi celular?</h3>
+<p>Sí. El sistema está optimizado para celular. Puedes instalarlo en tu pantalla de inicio como si fuera una app: en Safari (iPhone) presiona el ícono de compartir → <em>Agregar a pantalla de inicio</em>.</p>
+
+<h3>¿Qué pasa si cancelo una cita?</h3>
+<p>La cita queda marcada como Cancelada. No se descuenta del inventario, no cuenta para ingresos, y el evento de Google Calendar se elimina automáticamente.</p>
+
+<h3>¿Puedo tener dos citas a la misma hora?</h3>
+<p>No. El sistema evita que se agenden citas con traslape de horario. Si intentas agendar una cita en un horario ocupado, recibirás un aviso.</p>
+
+<h3>¿Se pierden los datos si hay un problema?</h3>
+<p>No. Tu base de datos está en Supabase, que hace copias de seguridad automáticas todos los días. Ver sección de respaldos más abajo.</p>
+
+<h3>¿Cómo agrego una clienta que no quiere dar email?</h3>
+<p>El email es opcional. Llena solo el nombre y teléfono. La clienta no recibirá correos, pero todo lo demás funciona igual.</p>
+
+<h3>El correo automático no llegó, ¿qué hago?</h3>
+<p>Pídele a la clienta que revise su carpeta de spam. Si sigue sin aparecer, confirma que el email esté bien escrito en su perfil. Para recordatorios, verifica que la cita tenga fecha futura y status "Confirmada".</p>
+
+<!-- ══════════════════════ RESPALDOS ══════════════════════ -->
+<h2>Política de Respaldos</h2>
+
+<p>Todos tus datos (clientas, citas, inventario, etc.) están guardados en <strong>Supabase</strong>, un servicio seguro en la nube.</p>
+
+<table>
+  <thead>
+    <tr><th>Qué se respalda</th><th>Frecuencia</th><th>Retención</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Base de datos (clientes, citas, inventario)</td>
+      <td>Diario, automático</td>
+      <td>7 días (plan gratuito)</td>
+    </tr>
+    <tr>
+      <td>Fotos de clientas</td>
+      <td>Almacenamiento permanente en la nube</td>
+      <td>Indefinido mientras exista la cuenta</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note importante">
+  El plan gratuito de Supabase guarda respaldos de los últimos <strong>7 días</strong>. Si algo se borra por error, se puede recuperar dentro de esa ventana. Después de 7 días no hay recuperación posible. Si el negocio crece y necesitas más seguridad, se puede actualizar a un plan de pago con retención de 30 días.
+</div>
+
+<p>Las fotos de clientas se almacenan por separado y no tienen ese límite de tiempo — permanecen en la nube mientras la cuenta de Supabase esté activa.</p>
+
+<!-- ══════════════════════ PIE ═════════════════════════════ -->
+<hr style="margin: 48px 0 20px; border: none; border-top: 1px solid #d8d4c8;" />
+<p style="font-size: 11px; color: #b0a890; text-align: center; letter-spacing: 0.3px;">
+  Angelin Esthetician Studio &nbsp;·&nbsp; Sistema desarrollado por André González &nbsp;·&nbsp; Marzo 2026
+</p>
+
+</body>
+</html>
