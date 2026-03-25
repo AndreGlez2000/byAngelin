@@ -171,7 +171,7 @@ function toForm(p: SkinProfile | null): SkinForm {
       comentarios: "",
     };
   return {
-    fecha: p.fecha.slice(0, 10),
+    fecha: new Date(p.fecha).toISOString().slice(0, 10),
     edad: p.edad != null ? String(p.edad) : "",
     fototipo: p.fototipo ?? "",
     biotipo: p.biotipo ?? "",
