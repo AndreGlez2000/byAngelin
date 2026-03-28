@@ -327,13 +327,14 @@ export function AgendaClient({
         paymentMethod: "Efectivo",
         sessionNotes: editForm.sessionNotes,
       });
-      // also patch service/date while at it
+      // patch service/date/status — status se guarda ya, el modal solo agrega precio
       const resCompleted = await fetch(`/api/appointments/${editingAppt.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           service: serviceName,
           date: new Date(dateTime).toISOString(),
+          status: "COMPLETED",
         }),
       });
       if (resCompleted.status === 409) {
@@ -419,7 +420,7 @@ export function AgendaClient({
 
   async function handleCompleteWithPayment() {
     if (!payModal) return;
-    await fetch(`/api/appointments/${payModal.id}`, {
+    const res = await fetch(`/api/appointments/${payModal.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -430,6 +431,10 @@ export function AgendaClient({
         sessionNotes: payModal.sessionNotes || null,
       }),
     });
+    if (!res.ok) {
+      alert("Error al guardar el pago. Intenta de nuevo.");
+      return;
+    }
     setPayModal(null);
     fetchAppointments();
   }
