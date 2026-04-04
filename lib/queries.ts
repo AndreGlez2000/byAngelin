@@ -1,61 +1,63 @@
 import { db } from "@/lib/db";
 
-export async function getDashboardMetrics() {
+export type ServiceStat = {
+  service: string;
+  count: number;
+  revenue: number;
+  appointments: {
+    id: string;
+    date: Date;
+    clientId: string;
+    clientName: string;
+    pricePaid: number | null;
+    paymentMethod: string | null;
+  }[];
+};
+
+// month: cualquier Date dentro del mes deseado. Default: mes actual.
+export async function getDashboardMetrics(month?: Date) {
+  const ref = month ?? new Date();
+  const startOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1);
+  const endOfMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
+  const startOfLastMonth = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(ref.getFullYear(), ref.getMonth(), 0, 23, 59, 59);
+
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    0,
-    23,
-    59,
-    59,
-  );
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const [
-    completedThisMonth,
-    completedLastMonth,
-    allCompleted,
-    todayAppointments,
-    lowStock,
-  ] = await Promise.all([
-    db.appointment.findMany({
-      where: { status: "COMPLETED", date: { gte: startOfMonth } },
-      select: { pricePaid: true, service: true },
-    }),
-    db.appointment.findMany({
-      where: {
-        status: "COMPLETED",
-        date: { gte: startOfLastMonth, lte: endOfLastMonth },
-      },
-      select: { pricePaid: true },
-    }),
-    db.appointment.findMany({
-      where: { status: "COMPLETED" },
-      select: { pricePaid: true, service: true },
-    }),
-    db.appointment.findMany({
-      where: { date: { gte: startOfToday, lte: endOfToday } },
-      include: { client: { select: { id: true, name: true } } },
-      orderBy: { date: "asc" },
-    }),
-    db.product.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        brand: true,
-        unit: true,
-        stock: true,
-        lowStockAlert: true,
-      },
-    }),
-  ]);
+  const [completedThisMonth, completedLastMonth, todayAppointments] =
+    await Promise.all([
+      db.appointment.findMany({
+        where: {
+          status: "COMPLETED",
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+        select: {
+          id: true,
+          service: true,
+          pricePaid: true,
+          paymentMethod: true,
+          date: true,
+          client: { select: { id: true, name: true } },
+        },
+        orderBy: { date: "desc" },
+      }),
+      db.appointment.findMany({
+        where: {
+          status: "COMPLETED",
+          date: { gte: startOfLastMonth, lte: endOfLastMonth },
+        },
+        select: { pricePaid: true },
+      }),
+      db.appointment.findMany({
+        where: { date: { gte: startOfToday, lte: endOfToday } },
+        include: { client: { select: { id: true, name: true } } },
+        orderBy: { date: "asc" },
+      }),
+    ]);
 
   const revenueThisMonth = completedThisMonth.reduce(
     (sum, a) => sum + (a.pricePaid ?? 0),
@@ -66,26 +68,55 @@ export async function getDashboardMetrics() {
     0,
   );
 
-  const revenueByService: Record<string, { revenue: number; count: number }> =
-    {};
-  for (const appt of allCompleted) {
-    const key = appt.service;
-    if (!revenueByService[key])
-      revenueByService[key] = { revenue: 0, count: 0 };
-    revenueByService[key].revenue += appt.pricePaid ?? 0;
-    revenueByService[key].count += 1;
+  // Agrupar por servicio con lista de citas para click-through
+  const serviceMap = new Map<string, ServiceStat>();
+  for (const appt of completedThisMonth) {
+    const existing = serviceMap.get(appt.service);
+    const apptEntry = {
+      id: appt.id,
+      date: appt.date,
+      clientId: appt.client.id,
+      clientName: appt.client.name,
+      pricePaid: appt.pricePaid,
+      paymentMethod: appt.paymentMethod,
+    };
+    if (existing) {
+      existing.count += 1;
+      existing.revenue += appt.pricePaid ?? 0;
+      existing.appointments.push(apptEntry);
+    } else {
+      serviceMap.set(appt.service, {
+        service: appt.service,
+        count: 1,
+        revenue: appt.pricePaid ?? 0,
+        appointments: [apptEntry],
+      });
+    }
   }
+
+  const serviceStats = Array.from(serviceMap.values()).sort(
+    (a, b) => b.revenue - a.revenue,
+  );
+
+  // Lista plana de todas las citas del mes para el modal de "Citas completadas"
+  const allCompletedThisMonth = completedThisMonth.map((a) => ({
+    id: a.id,
+    date: a.date,
+    service: a.service,
+    clientId: a.client.id,
+    clientName: a.client.name,
+    pricePaid: a.pricePaid,
+    paymentMethod: a.paymentMethod,
+  }));
 
   return {
     revenueThisMonth,
     revenueLastMonth,
     appointmentsThisMonth: completedThisMonth.length,
     appointmentsLastMonth: completedLastMonth.length,
-    revenueByService: Object.entries(revenueByService)
-      .map(([service, data]) => ({ service, ...data }))
-      .sort((a, b) => b.revenue - a.revenue),
+    serviceStats,
+    allCompletedThisMonth,
     todayAppointments,
-    lowStock: lowStock.filter((p) => p.stock < p.lowStockAlert),
   };
 }
 
@@ -134,6 +165,18 @@ export async function getClientDetail(id: string) {
         select: {
           id: true,
           service: true,
+          services: {
+            select: {
+              service: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  duration: true,
+                },
+              },
+            },
+          },
           date: true,
           status: true,
           sessionNotes: true,
@@ -149,7 +192,19 @@ export async function getAgendaData(from: Date, to: Date) {
   const [appointments, clients, services] = await Promise.all([
     db.appointment.findMany({
       where: { date: { gte: from, lte: to } },
-      include: { client: { select: { id: true, name: true, phone: true } } },
+      include: {
+        client: { select: { id: true, name: true, phone: true } },
+        receipt: {
+          select: { id: true, totalAmount: true, paymentMethod: true },
+        },
+        services: {
+          include: {
+            service: {
+              select: { id: true, name: true, price: true, duration: true },
+            },
+          },
+        },
+      },
       orderBy: { date: "asc" },
     }),
     db.client.findMany({

@@ -1,5 +1,6 @@
 import Sidebar from '@/components/Sidebar'
 import { DrawerProvider } from '@/components/DrawerProvider'
+import AppToaster from '@/components/AppToaster'
 
 export function ServerShell({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function ServerShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-y-auto bg-parchment pt-14 md:pt-0">
           {children}
         </main>
+        <AppToaster />
       </DrawerProvider>
     </div>
   )

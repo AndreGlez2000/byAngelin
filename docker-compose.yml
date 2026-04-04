@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: angelin-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: angelin_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - angelin_dev_data:/var/lib/postgresql/data
+
+volumes:
+  angelin_dev_data:

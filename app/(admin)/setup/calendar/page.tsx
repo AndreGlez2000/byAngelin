@@ -8,6 +8,22 @@ export default async function CalendarSetupPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const user = await db.user.findFirst({ select: { gcalRefreshToken: true } });
+  const userId = session.user?.id
+    ? session.user.id
+    : session.user?.email
+      ? (
+          await db.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true },
+          })
+        )?.id
+      : null;
+
+  if (!userId) redirect("/login");
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { gcalRefreshToken: true },
+  });
   return <CalendarSetupClient isConnected={!!user?.gcalRefreshToken} />;
 }

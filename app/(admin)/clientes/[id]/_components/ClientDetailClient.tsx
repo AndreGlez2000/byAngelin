@@ -12,9 +12,15 @@ import {
   Trash2,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import ReceiptViewerModal, {
+  type ReceiptViewerData,
+} from "@/components/ReceiptViewerModal";
 import { formatPhone } from "@/lib/utils";
+import { showToast } from "@/lib/toast";
 import { PhotoStrip } from "./PhotoStrip";
 import { PhotoLightbox } from "./PhotoLightbox";
+
+import { AppointmentCard } from "@/components/appointments/AppointmentCard";
 
 const PhotoGalleryDialog = dynamic(
   () =>
@@ -50,6 +56,9 @@ type SkinProfile = {
 type Appointment = {
   id: string;
   service: string;
+  services?: Array<{
+    service: { id: string; name: string; price?: string; duration?: string };
+  }>;
   date: string;
   status: "CONFIRMED" | "COMPLETED" | "CANCELLED";
   sessionNotes: string | null;
@@ -64,7 +73,13 @@ type Client = {
   skinProfile: SkinProfile | null;
   appointments: Appointment[];
 };
-type Service = { id: string; name: string; price: number };
+type Service = {
+  id: string;
+  name: string;
+  category?: string | null;
+  duration?: string | null;
+  price: string | number;
+};
 type Photo = {
   id: string;
   url: string | null;
@@ -78,6 +93,20 @@ type PhotoGroup = {
   service: string | null;
   date: string | null;
   photos: Photo[];
+};
+
+type ReceiptApi = {
+  id: string;
+  appointmentId: string;
+  totalAmount: number;
+  paymentMethod: string;
+  notes: string | null;
+  appointment: {
+    id: string;
+    date: string;
+    client: { id: string; name: string; email: string | null };
+    services: Array<{ service: { name: string; price: string } }>;
+  };
 };
 
 const STATUS_LABEL = {
@@ -139,11 +168,23 @@ type SkinForm = {
 
 type ApptForm = {
   service: string;
+  serviceIds: string[];
   date: string;
   status: "CONFIRMED" | "COMPLETED" | "CANCELLED";
   pricePaid: string;
   sessionNotes: string;
 };
+
+function computeServiceLabel(selectedIds: string[], services: Service[]): string {
+  return selectedIds
+    .map((id) => services.find((s) => s.id === id)?.name ?? "")
+    .filter(Boolean)
+    .join(" + ");
+}
+
+function displayPrice(value: string | number) {
+  return typeof value === "number" ? `$${value}` : value;
+}
 
 function toForm(p: SkinProfile | null): SkinForm {
   const today = new Date().toISOString().slice(0, 10);
@@ -221,6 +262,7 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [apptForm, setApptForm] = useState<ApptForm>({
     service: "",
+    serviceIds: [],
     date: "",
     status: "CONFIRMED",
     pricePaid: "",
@@ -235,6 +277,7 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [showGallery, setShowGallery] = useState(false);
   const [lightboxPhotoId, setLightboxPhotoId] = useState<string | null>(null);
+  const [receiptModal, setReceiptModal] = useState<ReceiptViewerData | null>(null);
   const apptPhotoInputRef = useRef<HTMLInputElement>(null);
   const apptCameraInputRef = useRef<HTMLInputElement>(null);
   const [apptPhotoUploading, setApptPhotoUploading] = useState(false);
@@ -323,9 +366,12 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
   function openNewAppt() {
     const now = new Date();
     now.setMinutes(0, 0, 0);
+    const firstServiceId = services[0]?.id;
+    const initialServiceIds = firstServiceId ? [firstServiceId] : [];
     setEditingAppt(null);
     setApptForm({
-      service: services[0]?.name ?? "",
+      service: computeServiceLabel(initialServiceIds, services),
+      serviceIds: initialServiceIds,
       date: toLocalDatetimeStr(now.toISOString()),
       status: "CONFIRMED",
       pricePaid: "",
@@ -334,23 +380,34 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
     setShowApptModal(true);
   }
 
-  function openEditAppt(a: Appointment) {
-    setEditingAppt(a);
+  function openEditAppt(appt: Appointment) {
+    const relationIds = (appt.services ?? []).map((s) => s.service.id);
+    const fallbackId = services.find((s) => s.name === appt.service)?.id;
+    const serviceIds = relationIds.length > 0 ? relationIds : fallbackId ? [fallbackId] : [];
+    setEditingAppt(appt);
     setApptForm({
-      service: a.service,
-      date: toLocalDatetimeStr(a.date),
-      status: a.status,
-      pricePaid: a.pricePaid != null ? String(a.pricePaid) : "",
-      sessionNotes: a.sessionNotes ?? "",
+      service: computeServiceLabel(serviceIds, services) || appt.service,
+      serviceIds,
+      date: toLocalDatetimeStr(appt.date),
+      status: appt.status,
+      pricePaid: appt.pricePaid != null ? String(appt.pricePaid) : "",
+      sessionNotes: appt.sessionNotes ?? "",
     });
     setShowApptModal(true);
   }
 
   async function handleApptSave(e: React.FormEvent) {
     e.preventDefault();
+    if (apptForm.serviceIds.length === 0) {
+      alert("Seleccioná al menos un servicio");
+      return;
+    }
     setSavingAppt(true);
+    const serviceLabel =
+      computeServiceLabel(apptForm.serviceIds, services) || apptForm.service;
     const payload = {
-      service: apptForm.service,
+      service: serviceLabel,
+      serviceIds: apptForm.serviceIds,
       date: new Date(apptForm.date).toISOString(),
       status: apptForm.status,
       pricePaid: apptForm.pricePaid !== "" ? Number(apptForm.pricePaid) : null,
@@ -376,7 +433,45 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
 
   function handleApptDelete(apptId: string) {
     const appt = client?.appointments.find((a) => a.id === apptId);
-    setConfirmDelete({ id: apptId, label: appt?.service ?? "esta cita" });
+    const label =
+      appt?.services?.length
+        ? appt.services.map((s) => s.service.name).join(" + ")
+        : appt?.service ?? "esta cita";
+    setConfirmDelete({ id: apptId, label });
+  }
+
+  async function openReceiptOrGoAgenda(a: Appointment) {
+    const res = await fetch(`/api/receipts/${a.id}`);
+    if (res.status === 404) {
+      if (a.status !== "COMPLETED") {
+        router.push(
+          `/agenda?appointmentId=${a.id}&date=${new Date(a.date).toISOString()}`,
+        );
+        return;
+      }
+      showToast("Esta cita completada no tiene recibo disponible.", "info");
+      return;
+    }
+    if (!res.ok) {
+      showToast("No se pudo abrir el recibo", "error");
+      return;
+    }
+    const data = (await res.json()) as ReceiptApi;
+    setReceiptModal({
+      appointmentId: data.appointmentId,
+      receiptId: data.id,
+      clientId: data.appointment.client.id,
+      clientName: data.appointment.client.name,
+      clientEmail: data.appointment.client.email,
+      services: data.appointment.services.map((s) => ({
+        name: s.service.name,
+        price: s.service.price,
+      })),
+      date: data.appointment.date,
+      totalAmount: data.totalAmount,
+      paymentMethod: data.paymentMethod,
+      notes: data.notes,
+    });
   }
 
   async function confirmDoDelete() {
@@ -579,76 +674,37 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
           ) : (
             <div className="space-y-3">
               {client.appointments.map((a) => {
-                const d = new Date(a.date);
                 const apptPhotoCount =
                   photoGroups.find((g) => g.appointmentId === a.id)?.photos
                     .length ?? 0;
                 return (
-                  <div
-                    key={a.id}
-                    onClick={() => openEditAppt(a)}
-                    className="bg-white rounded-xl shadow-card p-4 cursor-pointer hover:shadow-md hover:ring-1 hover:ring-olive/15 transition-shadow"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="text-center shrink-0 w-10">
-                          <div className="text-xl font-semibold text-olive leading-none">
-                            {d.getDate()}
-                          </div>
-                          <div className="text-[10px] text-olive/40">
-                            {MONTHS[d.getMonth()]}
-                          </div>
-                          <div className="text-[10px] text-olive/30">
-                            {d.getFullYear()}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-olive text-sm">
-                            {a.service}
-                          </p>
-                          <p className="text-xs text-olive/50 mt-0.5">
-                            {d.toLocaleTimeString("es-MX", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                          {a.pricePaid != null && (
-                            <p className="text-xs text-moss font-medium mt-0.5">
-                              ${a.pricePaid.toLocaleString("es-MX")}
-                            </p>
-                          )}
-                          {a.sessionNotes && (
-                            <p className="text-xs text-olive/40 mt-1 italic line-clamp-2">
-                              {a.sessionNotes}
-                            </p>
-                          )}
-                          {apptPhotoCount > 0 && (
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <ImageIcon size={10} className="text-olive/30" />
-                              <span className="text-[10px] text-olive/30">
-                                {apptPhotoCount}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span
-                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLOR[a.status]}`}
-                        >
-                          {STATUS_LABEL[a.status]}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleApptDelete(a.id);
-                          }}
-                          className="p-1.5 rounded hover:bg-blossom/15 text-olive/25 hover:text-blossom-dark transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
+                  <div key={a.id} className="relative group">
+                    <AppointmentCard
+                      appointment={a}
+                      context="history"
+                      photoCount={apptPhotoCount}
+                      onClick={() => openReceiptOrGoAgenda(a)}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditAppt(a);
+                      }}
+                      className="absolute top-4 right-12 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                      title="Editar cita"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApptDelete(a.id);
+                      }}
+                      className="absolute bottom-4 right-4 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                      title="Eliminar cita"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 );
               })}
@@ -683,6 +739,13 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
           initialId={lightboxPhotoId}
           onClose={() => setLightboxPhotoId(null)}
           onDelete={handleLightboxDelete}
+        />
+      )}
+
+      {receiptModal && (
+        <ReceiptViewerModal
+          receipt={receiptModal}
+          onClose={() => setReceiptModal(null)}
         />
       )}
 
@@ -773,22 +836,56 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
             <form onSubmit={handleApptSave} className="space-y-3">
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
-                  Servicio
+                  Servicios
                 </label>
                 {services.length > 0 ? (
-                  <select
-                    value={apptForm.service}
-                    onChange={(e) =>
-                      setApptForm((f) => ({ ...f, service: e.target.value }))
-                    }
-                    className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
-                  >
-                    {services.map((s) => (
-                      <option key={s.id} value={s.name}>
-                        {s.name}
-                      </option>
+                  <div className="border border-olive/20 rounded-lg overflow-hidden">
+                    {Array.from(
+                      services.reduce((acc, s) => {
+                        const key = s.category || "Otros";
+                        if (!acc.has(key)) acc.set(key, [] as Service[]);
+                        acc.get(key)!.push(s);
+                        return acc;
+                      }, new Map<string, Service[]>()),
+                    ).map(([category, catServices]) => (
+                      <div key={category}>
+                        <div className="bg-parchment/60 px-3 py-1.5 text-[10px] text-olive/40 uppercase tracking-widest font-medium">
+                          {category}
+                        </div>
+                        {catServices.map((s) => {
+                          const checked = apptForm.serviceIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-t border-olive/8 first:border-t-0 ${checked ? "bg-blossom/8" : "hover:bg-parchment/40"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  const ids = checked
+                                    ? apptForm.serviceIds.filter((id) => id !== s.id)
+                                    : [...apptForm.serviceIds, s.id];
+                                  setApptForm((f) => ({
+                                    ...f,
+                                    serviceIds: ids,
+                                    service: computeServiceLabel(ids, services),
+                                  }));
+                                }}
+                                className="accent-blossom-dark shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm text-olive">{s.name}</span>
+                                <span className="text-[11px] text-olive/40 ml-2">
+                                  {s.duration || "—"} · {displayPrice(s.price)}
+                                </span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 ) : (
                   <input
                     required
@@ -799,6 +896,9 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
                     placeholder="Nombre del servicio"
                     className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom"
                   />
+                )}
+                {apptForm.serviceIds.length === 0 && (
+                  <p className="text-[11px] text-olive/40 mt-1">Seleccioná al menos un servicio</p>
                 )}
               </div>
               <div>

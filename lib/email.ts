@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import { render } from '@react-email/components'
 import { ConfirmacionCita } from '@/emails/ConfirmacionCita'
 import { RecordatorioCita } from '@/emails/RecordatorioCita'
+import { ReciboServicio } from '@/emails/ReciboServicio'
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -76,6 +77,35 @@ export async function sendReminderEmail(params: {
     from: FROM,
     to: params.to,
     subject: `Recordatorio: tu cita es mañana — ${params.service}`,
+    html,
+  })
+}
+
+export async function sendReceiptEmail(params: {
+  to: string
+  clientName: string
+  services: Array<{ name: string; price: string }>
+  date: Date
+  totalAmount: number
+  paymentMethod: string
+  notes?: string | null
+}) {
+  const html = await render(
+    ReciboServicio({
+      clientName: params.clientName,
+      services: params.services,
+      date: formatDate(params.date),
+      time: formatTime(params.date),
+      totalAmount: new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(params.totalAmount),
+      paymentMethod: params.paymentMethod,
+      notes: params.notes,
+    })
+  )
+
+  await transporter.sendMail({
+    from: FROM,
+    to: params.to,
+    subject: `Tu recibo — ${formatDate(params.date)}`,
     html,
   })
 }

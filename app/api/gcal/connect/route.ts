@@ -11,11 +11,24 @@ export async function GET(req: Request) {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const gcalUser = session.user?.id
+    ? { id: session.user.id }
+    : session.user?.email
+      ? await db.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true },
+        })
+      : null;
+
+  if (!gcalUser?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
 
   if (code) {
-    const result = await exchangeCodeForTokens(code);
+    const result = await exchangeCodeForTokens(gcalUser.id, code);
     if (!result) {
       return NextResponse.redirect(
         new URL("/setup/calendar?error=no_refresh_token", req.url),
@@ -34,6 +47,22 @@ export async function DELETE(req: Request) {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await db.user.updateMany({ data: { gcalRefreshToken: null } });
+  const gcalUser = session.user?.id
+    ? { id: session.user.id }
+    : session.user?.email
+      ? await db.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true },
+        })
+      : null;
+
+  if (!gcalUser?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await db.user.update({
+    where: { id: gcalUser.id },
+    data: { gcalRefreshToken: null },
+  });
   return NextResponse.json({ success: true });
 }

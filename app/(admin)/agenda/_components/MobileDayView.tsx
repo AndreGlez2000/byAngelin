@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { AppointmentCard } from '@/components/appointments/AppointmentCard'
 
 type Client = { id: string; name: string; phone: string }
 type Appointment = {
@@ -42,13 +43,15 @@ interface Props {
   onToday: () => void
   onNewAppointment: () => void
   onEdit: (appt: Appointment) => void
+  onOpenReceipt: (appt: Appointment) => void | Promise<void>
   onDelete: (id: string) => void
   getDisplayStatus: (appt: Appointment) => Appointment['status']
+  highlightedAppointmentId?: string | null
 }
 
 export function MobileDayView({
   selectedDay, today, appointments, onPrevDay, onNextDay, onToday,
-  onNewAppointment, onEdit, onDelete, getDisplayStatus,
+  onNewAppointment, onEdit, onOpenReceipt, onDelete, getDisplayStatus, highlightedAppointmentId,
 }: Props) {
   const isToday =
     selectedDay.toDateString() === today.toDateString()
@@ -109,35 +112,24 @@ export function MobileDayView({
             <p className="text-sm text-olive/40">Sin citas este día</p>
           </div>
         ) : (
-          <div className="divide-y divide-olive/8">
+          <div className="flex flex-col gap-3 p-4">
             {dayAppts.map(appt => {
               const displayStatus = getDisplayStatus(appt)
-              const apptDate = new Date(appt.date)
-              const time = apptDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })
               return (
-                <div
+                <AppointmentCard
                   key={appt.id}
-                  onClick={() => onEdit(appt)}
-                  className={`px-4 py-3.5 cursor-pointer active:opacity-70 transition-opacity ${STATUS_BG[displayStatus]}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[displayStatus]}`} />
-                        <span className="text-xs text-olive/50">{time}</span>
-                        <span className={`text-xs ${STATUS_TEXT[displayStatus]}`}>{STATUS_LABEL[displayStatus]}</span>
-                      </div>
-                      <Link
-                        href={`/clientes/${appt.client.id}`}
-                        onClick={e => e.stopPropagation()}
-                        className="text-sm font-semibold text-olive truncate block hover:text-blossom-dark hover:underline transition-colors"
-                      >
-                        {appt.client.name}
-                      </Link>
-                      <div className="text-xs text-olive/60 truncate">{appt.service}</div>
-                    </div>
-                  </div>
-                </div>
+                  appointment={appt}
+                  displayStatus={displayStatus}
+                  context="agenda"
+                  highlighted={highlightedAppointmentId === appt.id}
+                  onClick={() => {
+                    if (displayStatus === 'COMPLETED') {
+                      void onOpenReceipt(appt)
+                      return
+                    }
+                    onEdit(appt)
+                  }}
+                />
               )
             })}
           </div>

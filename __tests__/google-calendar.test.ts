@@ -41,8 +41,8 @@ vi.mock("googleapis", () => ({
 vi.mock("@/lib/db", () => ({
   db: {
     user: {
-      findFirst: vi.fn(),
-      updateMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -68,7 +68,7 @@ describe("getAuthUrl", () => {
 
 describe("createCalendarEvent", () => {
   beforeEach(() => {
-    vi.mocked(db.user.findFirst).mockResolvedValue({
+    vi.mocked(db.user.findUnique).mockResolvedValue({
       id: "u1",
       gcalRefreshToken: "mock-refresh-token",
     } as never);
@@ -81,6 +81,7 @@ describe("createCalendarEvent", () => {
     mockInsert.mockResolvedValue({ data: { id: "gcal-event-123" } });
 
     const result = await createCalendarEvent({
+      userId: "u1",
       summary: "Limpieza Facial — Ana López",
       start: new Date("2026-04-01T10:00:00"),
       durationMin: 60,
@@ -90,9 +91,10 @@ describe("createCalendarEvent", () => {
   });
 
   it("returns null when no refresh token stored", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(null);
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
 
     const result = await createCalendarEvent({
+      userId: "u1",
       summary: "Test",
       start: new Date(),
       durationMin: 60,
@@ -105,6 +107,7 @@ describe("createCalendarEvent", () => {
     mockInsert.mockRejectedValue(new Error("API error"));
 
     const result = await createCalendarEvent({
+      userId: "u1",
       summary: "Test",
       start: new Date(),
       durationMin: 60,
@@ -116,7 +119,7 @@ describe("createCalendarEvent", () => {
 
 describe("updateCalendarEvent", () => {
   beforeEach(() => {
-    vi.mocked(db.user.findFirst).mockResolvedValue({
+    vi.mocked(db.user.findUnique).mockResolvedValue({
       id: "u1",
       gcalRefreshToken: "mock-refresh-token",
     } as never);
@@ -127,6 +130,7 @@ describe("updateCalendarEvent", () => {
     mockPatch.mockResolvedValue({ data: {} });
 
     await updateCalendarEvent({
+      userId: "u1",
       eventId: "gcal-event-123",
       summary: "Nueva Limpieza — Ana",
       start: new Date("2026-04-01T11:00:00"),
@@ -139,9 +143,10 @@ describe("updateCalendarEvent", () => {
   });
 
   it("does nothing when no refresh token", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(null);
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
 
     await updateCalendarEvent({
+      userId: "u1",
       eventId: "x",
       summary: "x",
       start: new Date(),
@@ -156,6 +161,7 @@ describe("updateCalendarEvent", () => {
 
     await expect(
       updateCalendarEvent({
+        userId: "u1",
         eventId: "x",
         summary: "x",
         start: new Date(),
@@ -167,7 +173,7 @@ describe("updateCalendarEvent", () => {
 
 describe("deleteCalendarEvent", () => {
   beforeEach(() => {
-    vi.mocked(db.user.findFirst).mockResolvedValue({
+    vi.mocked(db.user.findUnique).mockResolvedValue({
       id: "u1",
       gcalRefreshToken: "mock-refresh-token",
     } as never);
@@ -177,7 +183,7 @@ describe("deleteCalendarEvent", () => {
   it("calls events.delete with eventId", async () => {
     mockDelete.mockResolvedValue({});
 
-    await deleteCalendarEvent("gcal-event-123");
+    await deleteCalendarEvent("u1", "gcal-event-123");
 
     expect(mockDelete).toHaveBeenCalledWith(
       expect.objectContaining({ eventId: "gcal-event-123" }),
@@ -187,6 +193,6 @@ describe("deleteCalendarEvent", () => {
   it("does not throw on API error", async () => {
     mockDelete.mockRejectedValue(new Error("not found"));
 
-    await expect(deleteCalendarEvent("x")).resolves.not.toThrow();
+    await expect(deleteCalendarEvent("u1", "x")).resolves.not.toThrow();
   });
 });

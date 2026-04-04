@@ -2,7 +2,13 @@
 // npm install --save-dev prisma dotenv
 import { config } from "dotenv";
 import path from "path";
-config({ path: path.resolve(__dirname, ".env.local") });
+
+// Carga el env correcto según NODE_ENV:
+//   development → .env.development.local (BD local Docker)
+//   production  → .env.local (Supabase)
+const envFile = process.env.NODE_ENV === "production" ? ".env.local" : ".env.development.local";
+config({ path: path.resolve(__dirname, envFile) });
+
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({

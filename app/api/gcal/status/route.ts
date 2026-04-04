@@ -8,6 +8,22 @@ export async function GET() {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const user = await db.user.findFirst({ select: { gcalRefreshToken: true } });
+  const gcalUser = session.user?.id
+    ? { id: session.user.id }
+    : session.user?.email
+      ? await db.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true },
+        })
+      : null;
+
+  if (!gcalUser?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: gcalUser.id },
+    select: { gcalRefreshToken: true },
+  });
   return NextResponse.json({ connected: !!user?.gcalRefreshToken });
 }

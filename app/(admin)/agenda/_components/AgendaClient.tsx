@@ -8,15 +8,19 @@ import {
   Plus,
   FileText,
   Trash2,
+  Receipt,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import dynamic from "next/dynamic";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import ReceiptViewerModal from "@/components/ReceiptViewerModal";
 
 const MobileDayView = dynamic(
   () => import("./MobileDayView").then((m) => ({ default: m.MobileDayView })),
   { ssr: false },
 );
+
+import { AppointmentCard } from "@/components/appointments/AppointmentCard";
 
 type Client = { id: string; name: string; phone: string };
 type Service = {
@@ -35,6 +39,8 @@ type Appointment = {
   pricePaid?: number | null;
   paymentMethod?: string | null;
   client: Client;
+  services?: Array<{ service: { id: string; name: string; price: string } }>;
+  receipt?: { id: string; totalAmount: number; paymentMethod: string } | null;
 };
 
 type PayModal = {
@@ -44,6 +50,13 @@ type PayModal = {
   paymentMethod: string;
   sessionNotes: string;
 };
+
+function computeServiceLabel(selectedIds: string[], services: Service[]): string {
+  return selectedIds
+    .map((id) => services.find((s) => s.id === id)?.name ?? "")
+    .filter(Boolean)
+    .join(" + ");
+}
 
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MONTHS_SHORT = [
@@ -123,14 +136,22 @@ export function AgendaClient({
   initialAppointments,
   initialClients,
   initialServices,
+  initialFocusDate,
+  initialAppointmentId,
 }: {
   initialAppointments: any[];
   initialClients: any[];
   initialServices: any[];
+  initialFocusDate?: string;
+  initialAppointmentId?: string | null;
 }) {
   const isMobile = useIsMobile();
-  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
-  const [selectedDay, setSelectedDay] = useState(() => new Date());
+  const [weekStart, setWeekStart] = useState(() =>
+    mondayOf(initialFocusDate ? new Date(initialFocusDate) : new Date()),
+  );
+  const [selectedDay, setSelectedDay] = useState(() =>
+    initialFocusDate ? new Date(initialFocusDate) : new Date(),
+  );
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments);
   const [clients] = useState<Client[]>(initialClients);
@@ -139,15 +160,29 @@ export function AgendaClient({
   const [form, setForm] = useState({
     clientId: "",
     service: "",
+    serviceIds: [] as string[],
     date: "",
     time: "",
     sessionNotes: "",
   });
   const [saving, setSaving] = useState(false);
   const [payModal, setPayModal] = useState<PayModal | null>(null);
+  const [receiptModal, setReceiptModal] = useState<{
+    appointmentId: string;
+    receiptId?: string;
+    clientId?: string;
+    clientName: string;
+    clientEmail: string | null;
+    services: Array<{ name: string; price: string }>;
+    date: string;
+    totalAmount: number;
+    paymentMethod: string;
+    notes?: string | null;
+  } | null>(null);
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [editForm, setEditForm] = useState({
     service: "",
+    serviceIds: [] as string[],
     date: "",
     time: "",
     status: "CONFIRMED" as Appointment["status"],
@@ -164,28 +199,33 @@ export function AgendaClient({
   } | null>(null);
 
   const createOverlapError = useMemo(() => {
-    if (!form.date || !form.time || !form.service) return null;
-    const svc = services.find((s) => s.name === form.service);
-    if (!svc) return null;
+    if (!form.date || !form.time || form.serviceIds.length === 0) return null;
+    const totalMin = form.serviceIds.reduce((sum, id) => {
+      const svc = services.find((s) => s.id === id);
+      return sum + (svc ? parseDurationMin(svc.duration) : 0);
+    }, 0);
+    if (totalMin === 0) return null;
     const start = new Date(`${form.date}T${form.time}`);
-    return findOverlap(
-      start,
-      parseDurationMin(svc.duration),
-      appointments,
-      services,
-    );
-  }, [form.date, form.time, form.service, appointments, services]);
+    return findOverlap(start, totalMin, appointments, services);
+  }, [form.date, form.time, form.serviceIds, appointments, services]);
 
   const editOverlapError = useMemo(() => {
-    if (!editForm.date || !editForm.time || !editForm.service || !editingAppt)
+    if (
+      !editForm.date ||
+      !editForm.time ||
+      editForm.serviceIds.length === 0 ||
+      !editingAppt
+    )
       return null;
-    const svcName = editForm.service;
-    const svc = services.find((s) => s.name === svcName);
-    if (!svc) return null;
+    const totalMin = editForm.serviceIds.reduce((sum, id) => {
+      const svc = services.find((s) => s.id === id);
+      return sum + (svc ? parseDurationMin(svc.duration) : 0);
+    }, 0);
+    if (totalMin === 0) return null;
     const start = new Date(`${editForm.date}T${editForm.time}`);
     return findOverlap(
       start,
-      parseDurationMin(svc.duration),
+      totalMin,
       appointments,
       services,
       editingAppt.id,
@@ -193,7 +233,7 @@ export function AgendaClient({
   }, [
     editForm.date,
     editForm.time,
-    editForm.service,
+    editForm.serviceIds,
     editingAppt,
     appointments,
     services,
@@ -235,6 +275,33 @@ export function AgendaClient({
       .then(setAppointments);
   }, [selectedDay, isMobile]);
 
+  const [didOpenDeepLink, setDidOpenDeepLink] = useState(false);
+  const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<
+    string | null
+  >(null);
+  useEffect(() => {
+    if (!initialAppointmentId || didOpenDeepLink) return;
+    const appt = appointments.find((a) => a.id === initialAppointmentId);
+    if (!appt) return;
+
+    setHighlightedAppointmentId(appt.id);
+    setTimeout(() => {
+      document
+        .getElementById(`appt-card-${appt.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    setTimeout(() => setHighlightedAppointmentId(null), 2000);
+
+    // Si el deep-link corresponde a una cita con recibo, abrir el visor de recibo
+    // (y NO el CRUD de editar cita)
+    openReceiptFromAppointment(appt)
+      .catch(() => {
+        // No bloquear UX por errores de red en deep-link
+      });
+
+    setDidOpenDeepLink(true);
+  }, [initialAppointmentId, didOpenDeepLink, appointments]);
+
   function prevDay() {
     setSelectedDay((d) => {
       const n = new Date(d);
@@ -252,19 +319,23 @@ export function AgendaClient({
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (form.serviceIds.length === 0) {
+      setCreateServerError("Seleccioná al menos un servicio");
+      return;
+    }
     setSaving(true);
     setCreateServerError(null);
     const dateTime =
       form.date && form.time
         ? new Date(`${form.date}T${form.time}`).toISOString()
         : form.date;
-    const serviceName = form.service;
     const res = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: form.clientId,
-        service: serviceName,
+        service: form.service,
+        serviceIds: form.serviceIds,
         date: dateTime,
         sessionNotes: form.sessionNotes || null,
       }),
@@ -285,6 +356,7 @@ export function AgendaClient({
     setForm({
       clientId: "",
       service: "",
+      serviceIds: [],
       date: "",
       time: "",
       sessionNotes: "",
@@ -296,9 +368,14 @@ export function AgendaClient({
   function openEdit(a: Appointment) {
     const d = new Date(a.date);
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    const relationIds = (a.services ?? []).map((s) => s.service.id);
+    const fallbackId = services.find((s) => s.name === a.service)?.id;
+    const serviceIds =
+      relationIds.length > 0 ? relationIds : fallbackId ? [fallbackId] : [];
     setEditingAppt(a);
     setEditForm({
-      service: a.service,
+      service: computeServiceLabel(serviceIds, services) || a.service,
+      serviceIds,
       date: local.toISOString().slice(0, 10),
       time: local.toISOString().slice(11, 16),
       status: a.status,
@@ -309,21 +386,28 @@ export function AgendaClient({
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editingAppt) return;
+    if (editForm.serviceIds.length === 0) {
+      setEditServerError("Seleccioná al menos un servicio");
+      return;
+    }
     setSavingEdit(true);
     setEditServerError(null);
-    const serviceName = editForm.service;
+    const serviceName =
+      computeServiceLabel(editForm.serviceIds, services) || editForm.service;
     const dateTime = new Date(
       `${editForm.date}T${editForm.time}`,
     ).toISOString();
     const wasCompleted =
       editForm.status === "COMPLETED" && editingAppt.status !== "COMPLETED";
     if (wasCompleted) {
-      const svc = services.find((s) => s.name === serviceName);
-      const numeric = svc ? parseFloat(svc.price.replace(/[^0-9.]/g, "")) : NaN;
+      const totalPrice = editForm.serviceIds.reduce((sum, id) => {
+        const svc = services.find((s) => s.id === id);
+        return sum + (svc ? parseFloat(svc.price.replace(/[^0-9.]/g, "")) || 0 : 0);
+      }, 0);
       setPayModal({
         id: editingAppt.id,
         serviceName,
-        pricePaid: Number.isFinite(numeric) ? String(numeric) : "",
+        pricePaid: totalPrice > 0 ? String(totalPrice) : "",
         paymentMethod: "Efectivo",
         sessionNotes: editForm.sessionNotes,
       });
@@ -333,6 +417,7 @@ export function AgendaClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           service: serviceName,
+          serviceIds: editForm.serviceIds,
           date: new Date(dateTime).toISOString(),
           status: "COMPLETED",
         }),
@@ -359,6 +444,7 @@ export function AgendaClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         service: serviceName,
+        serviceIds: editForm.serviceIds,
         date: new Date(dateTime).toISOString(),
         status: editForm.status,
         sessionNotes: editForm.sessionNotes || null,
@@ -398,13 +484,18 @@ export function AgendaClient({
 
   async function changeStatus(id: string, status: string, serviceName: string) {
     if (status === "COMPLETED") {
-      const svc = services.find((s) => s.name === serviceName);
-      const numeric = svc ? parseFloat(svc.price.replace(/[^0-9.]/g, "")) : NaN;
       const appt = appointments.find((a) => a.id === id);
+      // Calcular precio sumando todos los servicios del appointment
+      const totalPrice = appt?.services?.reduce((sum, s) => {
+        return sum + (parseFloat(s.service.price.replace(/[^0-9.]/g, "")) || 0);
+      }, 0) ?? (() => {
+        const svc = services.find((s) => s.name === serviceName);
+        return svc ? parseFloat(svc.price.replace(/[^0-9.]/g, "")) || 0 : 0;
+      })();
       setPayModal({
         id,
         serviceName,
-        pricePaid: Number.isFinite(numeric) ? String(numeric) : "",
+        pricePaid: totalPrice > 0 ? String(totalPrice) : "",
         paymentMethod: "Efectivo",
         sessionNotes: appt?.sessionNotes ?? "",
       });
@@ -437,6 +528,38 @@ export function AgendaClient({
     }
     setPayModal(null);
     fetchAppointments();
+  }
+
+  async function openReceiptFromAppointment(appt: { id: string }) {
+    const res = await fetch(`/api/receipts/${appt.id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setReceiptModal({
+      receiptId: data.id,
+      appointmentId: data.appointmentId,
+      clientId: data.appointment.client.id,
+      clientName: data.appointment.client.name,
+      clientEmail: data.appointment.client.email,
+      services: data.appointment.services.map((s: any) => ({
+        name: s.service.name,
+        price: s.service.price,
+      })),
+      date: data.appointment.date,
+      totalAmount: data.totalAmount,
+      paymentMethod: data.paymentMethod,
+      notes: data.notes,
+    });
+  }
+
+  function openAppointmentFromStatus(
+    appt: Appointment,
+    displayStatus: Appointment["status"],
+  ) {
+    if (displayStatus === "COMPLETED") {
+      void openReceiptFromAppointment(appt);
+      return;
+    }
+    openEdit(appt);
   }
 
   const weekLabel = `Semana ${weekStart.getDate()} - ${weekEnd.getDate()} ${MONTHS_SHORT[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
@@ -542,7 +665,7 @@ export function AgendaClient({
                 return (
                   <div
                     key={i}
-                    className="border-r border-olive/8 last:border-r-0 p-1.5 space-y-1.5"
+                    className="border-r border-olive/8 last:border-r-0 p-2 space-y-2"
                   >
                     {dayAppts.map((a) => {
                       const displayStatus = getDisplayStatus(
@@ -550,55 +673,24 @@ export function AgendaClient({
                         services,
                         today,
                       );
-                      const time = new Date(a.date).toLocaleTimeString(
-                        "es-MX",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        },
-                      );
                       const svcDuration = services.find(
                         (s) => s.name === a.service,
                       )?.duration;
                       return (
-                        <div
+                        <AppointmentCard
                           key={a.id}
-                          onClick={() => openEdit(a)}
-                          className={`rounded-lg p-2.5 cursor-pointer group shadow hover:shadow-md hover:ring-1 hover:ring-olive/20 transition-shadow ${STATUS_BG[displayStatus]}`}
-                        >
-                          {/* Time + duration */}
-                          <div className="text-[11px] font-semibold text-olive/80 mb-1.5 leading-none">
-                            {time}
-                            {svcDuration ? ` · ${svcDuration}` : ""}
-                          </div>
-                          {/* Client name */}
-                          <Link
-                            href={`/clientes/${a.client.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-semibold text-olive leading-tight truncate block hover:text-blossom-dark hover:underline transition-colors"
-                          >
-                            {a.client.name}
-                          </Link>
-                          {/* Service */}
-                          <div className="text-[10px] text-olive/60 truncate mt-0.5 leading-tight">
-                            {a.service}
-                          </div>
-                          {/* Status badge + notes icon */}
-                          <div className="flex items-center justify-between mt-2">
-                            <span
-                              className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${STATUS_BADGE[displayStatus]}`}
-                            >
-                              {STATUS_LABEL[displayStatus]}
-                            </span>
-                            {a.sessionNotes && (
-                              <FileText
-                                size={9}
-                                className="text-olive/40 shrink-0"
-                              />
-                            )}
-                          </div>
-                        </div>
+                          appointment={a}
+                          displayStatus={displayStatus}
+                          context="agenda"
+                          highlighted={highlightedAppointmentId === a.id}
+                          serviceDuration={svcDuration}
+                          onClick={() =>
+                            openAppointmentFromStatus(a, displayStatus)
+                          }
+                          onReceiptClick={async (appt) => {
+                            await openReceiptFromAppointment(appt);
+                          }}
+                        />
                       );
                     })}
                   </div>
@@ -632,8 +724,10 @@ export function AgendaClient({
           onToday={() => setSelectedDay(new Date())}
           onNewAppointment={() => setShowModal(true)}
           onEdit={openEdit}
+          onOpenReceipt={openReceiptFromAppointment}
           onDelete={handleDelete}
           getDisplayStatus={(a) => getDisplayStatus(a, services, today)}
+          highlightedAppointmentId={highlightedAppointmentId}
         />
       )}
 
@@ -692,7 +786,7 @@ export function AgendaClient({
                   Método de pago
                 </label>
                 <div className="flex gap-2">
-                  {["Efectivo", "Transferencia", "Tarjeta"].map((m) => (
+                  {["Efectivo", "Transferencia"].map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -778,35 +872,55 @@ export function AgendaClient({
               </div>
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
-                  Servicio
+                  Servicios
                 </label>
-                <select
-                  required
-                  value={editForm.service}
-                  onChange={(e) =>
-                    setEditForm((f) => ({
-                      ...f,
-                      service: e.target.value,
-                    }))
-                  }
-                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
-                >
+                <div className="border border-olive/20 rounded-lg overflow-hidden">
                   {["Facial", "Extra / Complemento"].map((cat) => {
-                    const catServices = services.filter(
-                      (s) => s.category === cat,
-                    );
+                    const catServices = services.filter((s) => s.category === cat);
                     if (catServices.length === 0) return null;
                     return (
-                      <optgroup key={cat} label={cat}>
-                        {catServices.map((s) => (
-                          <option key={s.id} value={s.name}>
-                            {s.name} · {s.duration} · {s.price}
-                          </option>
-                        ))}
-                      </optgroup>
+                      <div key={cat}>
+                        <div className="bg-parchment/60 px-3 py-1.5 text-[10px] text-olive/40 uppercase tracking-widest font-medium">
+                          {cat}
+                        </div>
+                        {catServices.map((s) => {
+                          const checked = editForm.serviceIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-t border-olive/8 first:border-t-0 ${checked ? "bg-blossom/8" : "hover:bg-parchment/40"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  const ids = checked
+                                    ? editForm.serviceIds.filter((id) => id !== s.id)
+                                    : [...editForm.serviceIds, s.id];
+                                  setEditForm((f) => ({
+                                    ...f,
+                                    serviceIds: ids,
+                                    service: computeServiceLabel(ids, services),
+                                  }));
+                                }}
+                                className="accent-blossom-dark shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm text-olive">{s.name}</span>
+                                <span className="text-[11px] text-olive/40 ml-2">
+                                  {s.duration} · {s.price}
+                                </span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
                     );
                   })}
-                </select>
+                </div>
+                {editForm.serviceIds.length === 0 && (
+                  <p className="text-[11px] text-olive/40 mt-1">Seleccioná al menos un servicio</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -933,6 +1047,14 @@ export function AgendaClient({
         </div>
       )}
 
+      {/* Modal de recibo */}
+      {receiptModal && (
+        <ReceiptViewerModal
+          receipt={receiptModal}
+          onClose={() => setReceiptModal(null)}
+        />
+      )}
+
       {/* Modal nueva cita */}
       {showModal && (
         <div className="fixed inset-0 bg-black/25 flex items-end md:items-center justify-center md:p-4 z-50">
@@ -974,36 +1096,53 @@ export function AgendaClient({
               </div>
               <div>
                 <label className="text-[10px] text-olive/50 uppercase tracking-widest mb-1 block">
-                  Servicio
+                  Servicios
                 </label>
-                <select
-                  required
-                  value={form.service}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      service: e.target.value,
-                    }))
-                  }
-                  className="w-full border border-olive/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blossom bg-white"
-                >
-                  <option value="">Seleccionar servicio…</option>
+                <div className="border border-olive/20 rounded-lg overflow-hidden">
                   {["Facial", "Extra / Complemento"].map((cat) => {
-                    const catServices = services.filter(
-                      (s) => s.category === cat,
-                    );
+                    const catServices = services.filter((s) => s.category === cat);
                     if (catServices.length === 0) return null;
                     return (
-                      <optgroup key={cat} label={cat}>
-                        {catServices.map((s) => (
-                          <option key={s.id} value={s.name}>
-                            {s.name} · {s.duration} · {s.price}
-                          </option>
-                        ))}
-                      </optgroup>
+                      <div key={cat}>
+                        <div className="bg-parchment/60 px-3 py-1.5 text-[10px] text-olive/40 uppercase tracking-widest font-medium">
+                          {cat}
+                        </div>
+                        {catServices.map((s) => {
+                          const checked = form.serviceIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-t border-olive/8 first:border-t-0 ${checked ? "bg-blossom/8" : "hover:bg-parchment/40"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  const ids = checked
+                                    ? form.serviceIds.filter((id) => id !== s.id)
+                                    : [...form.serviceIds, s.id];
+                                  setForm((f) => ({
+                                    ...f,
+                                    serviceIds: ids,
+                                    service: computeServiceLabel(ids, services),
+                                  }));
+                                }}
+                                className="accent-blossom-dark shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm text-olive">{s.name}</span>
+                                <span className="text-[11px] text-olive/40 ml-2">{s.duration} · {s.price}</span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
                     );
                   })}
-                </select>
+                </div>
+                {form.serviceIds.length === 0 && (
+                  <p className="text-[11px] text-olive/40 mt-1">Seleccioná al menos un servicio</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

@@ -14,7 +14,18 @@ export async function GET(_req: Request, { params }: Params) {
     where: { id },
     include: {
       skinProfile: true,
-      appointments: { orderBy: { date: 'desc' } },
+      appointments: {
+        orderBy: { date: 'desc' },
+        include: {
+          services: {
+            include: {
+              service: {
+                select: { id: true, name: true, price: true, duration: true },
+              },
+            },
+          },
+        },
+      },
     },
   })
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 })

@@ -1,6 +1,11 @@
 import { config } from 'dotenv'
 import path from 'path'
-config({ path: path.resolve(__dirname, '../.env.local') })
+
+// Carga el env correcto según NODE_ENV:
+//   development → .env.development.local (BD local Docker)
+//   production  → .env.local (Supabase)
+const envFile = process.env.NODE_ENV === 'production' ? '.env.local' : '.env.development.local'
+config({ path: path.resolve(__dirname, '..', envFile) })
 
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
@@ -9,8 +14,23 @@ import bcrypt from 'bcryptjs'
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
+// Fechas evergreen para que el dashboard siempre tenga datos del mes actual:
+// - month=1 => hace 2 meses
+// - month=2 => mes pasado
+// - month=3 => mes actual
+const now = new Date()
+const seedStart = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+
 function d(month: number, day: number, hour: number, min = 0): Date {
-  return new Date(2026, month - 1, day, hour, min, 0, 0)
+  return new Date(
+    seedStart.getFullYear(),
+    seedStart.getMonth() + (month - 1),
+    day,
+    hour,
+    min,
+    0,
+    0,
+  )
 }
 
 function costPerUse(qty: number, costPerUnit: number, capacityPerUnit: number) {
