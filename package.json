@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:dev:refresh": "dotenv -e .env.development.local -- npx prisma db push && dotenv -e .env.development.local -- npx prisma db seed",
-    "dev:local": "npm run db:dev:refresh && npm run dev"
+    "dev:local": "npm run db:dev:refresh && npm run dev",
+    "release": "git push origin master && git push vercel master"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
