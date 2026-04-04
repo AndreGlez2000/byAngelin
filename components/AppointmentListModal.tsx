@@ -1,7 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-import Link from "next/link";
 import { useRef, useState } from "react";
 import ReceiptViewerModal, { type ReceiptViewerData } from "./ReceiptViewerModal";
 import { showToast } from "@/lib/toast";
@@ -186,16 +185,9 @@ export default function AppointmentListModal({
 
                     {/* Detalle */}
                     <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/clientes/${a.clientId}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onClose();
-                        }}
-                        className="text-sm font-medium text-blossom-dark underline underline-offset-2 truncate block"
-                      >
+                      <p className="text-sm font-medium text-blossom-dark truncate block">
                         {a.clientName}
-                      </Link>
+                      </p>
                       <div className="text-xs text-olive/50 truncate">
                         {a.service}
                       </div>

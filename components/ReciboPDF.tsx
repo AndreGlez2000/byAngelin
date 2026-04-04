@@ -1,8 +1,9 @@
 import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
 
+// Vercel-safe: fuente remota estable (evita rutas locales a node_modules en runtime serverless)
 Font.register({
   family: "PinyonScript",
-  src: `${process.cwd()}/node_modules/@fontsource/pinyon-script/files/pinyon-script-latin-400-normal.woff`,
+  src: "https://cdn.jsdelivr.net/npm/@fontsource/pinyon-script/files/pinyon-script-latin-400-normal.woff",
 });
 
 const styles = StyleSheet.create({

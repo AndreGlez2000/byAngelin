@@ -10,6 +10,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:dev:refresh": "dotenv -e .env.development.local -- npx prisma db push && dotenv -e .env.development.local -- npx prisma db seed",
+    "db:push:local": "dotenv -e .env.development.local -- node scripts/db-safe-push.js local",
+    "db:push:staging": "dotenv -e .env.staging.safe -- node scripts/db-safe-push.js staging",
+    "db:push:prod": "dotenv -e .env.production.safe -- node scripts/db-safe-push.js prod",
+    "db:push:prod:confirm": "CONFIRM_PROD_DB=YES_PROD dotenv -e .env.production.safe -- node scripts/db-safe-push.js prod",
     "dev:local": "npm run db:dev:refresh && npm run dev",
     "release": "git push origin master && git push vercel master"
   },
