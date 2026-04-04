@@ -28,7 +28,7 @@
     "browser-image-compression": "^2.0.2",
     "googleapis": "^171.4.0",
     "lucide-react": "^0.577.0",
-    "next": "14.2.35",
+    "next": "16.2.2",
     "next-auth": "^4.24.13",
     "nodemailer": "^7.0.13",
     "pg": "^8.20.0",
