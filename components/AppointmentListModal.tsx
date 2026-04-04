@@ -2,9 +2,10 @@
 
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ReceiptViewerModal, { type ReceiptViewerData } from "./ReceiptViewerModal";
 import { showToast } from "@/lib/toast";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 export type ModalAppointment = {
   id: string;
@@ -48,34 +49,58 @@ export default function AppointmentListModal({
   onClose: () => void;
 }) {
   const [receipt, setReceipt] = useState<ReceiptViewerData | null>(null);
+  const [receiptLoadingById, setReceiptLoadingById] = useState<
+    Record<string, boolean>
+  >({});
+  const [receiptErrorById, setReceiptErrorById] = useState<
+    Record<string, string | null>
+  >({});
+  const inFlightRef = useRef<Set<string>>(new Set());
   const total = appointments.reduce((s, a) => s + (a.pricePaid ?? 0), 0);
 
+  useBodyScrollLock(true);
+
   async function openReceipt(appt: ModalAppointment) {
-    const res = await fetch(`/api/receipts/${appt.id}`);
-    if (res.status === 404) {
-      showToast("Esta cita no tiene recibo disponible.", "info");
-      return;
+    if (inFlightRef.current.has(appt.id)) return;
+
+    inFlightRef.current.add(appt.id);
+    setReceiptLoadingById((prev) => ({ ...prev, [appt.id]: true }));
+    setReceiptErrorById((prev) => ({ ...prev, [appt.id]: null }));
+
+    try {
+      const res = await fetch(`/api/receipts/${appt.id}`);
+      if (res.status === 404) {
+        const msg = "Esta cita no tiene recibo disponible.";
+        setReceiptErrorById((prev) => ({ ...prev, [appt.id]: msg }));
+        showToast(msg, "info");
+        return;
+      }
+      if (!res.ok) {
+        const msg = "No se pudo abrir el recibo";
+        setReceiptErrorById((prev) => ({ ...prev, [appt.id]: msg }));
+        showToast(msg, "error");
+        return;
+      }
+      const data = (await res.json()) as ReceiptApi;
+      setReceipt({
+        appointmentId: data.appointmentId,
+        receiptId: data.id,
+        clientId: data.appointment.client.id,
+        clientName: data.appointment.client.name,
+        clientEmail: data.appointment.client.email,
+        services: data.appointment.services.map((s) => ({
+          name: s.service.name,
+          price: s.service.price,
+        })),
+        date: data.appointment.date,
+        totalAmount: data.totalAmount,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+      });
+    } finally {
+      inFlightRef.current.delete(appt.id);
+      setReceiptLoadingById((prev) => ({ ...prev, [appt.id]: false }));
     }
-    if (!res.ok) {
-      showToast("No se pudo abrir el recibo", "error");
-      return;
-    }
-    const data = (await res.json()) as ReceiptApi;
-    setReceipt({
-      appointmentId: data.appointmentId,
-      receiptId: data.id,
-      clientId: data.appointment.client.id,
-      clientName: data.appointment.client.name,
-      clientEmail: data.appointment.client.email,
-      services: data.appointment.services.map((s) => ({
-        name: s.service.name,
-        price: s.service.price,
-      })),
-      date: data.appointment.date,
-      totalAmount: data.totalAmount,
-      paymentMethod: data.paymentMethod,
-      notes: data.notes,
-    });
   }
 
   return (
@@ -127,11 +152,24 @@ export default function AppointmentListModal({
                   minute: "2-digit",
                   hour12: false,
                 });
+                const isLoading = !!receiptLoadingById[a.id];
                 return (
                   <div
                     key={a.id}
-                    onClick={() => openReceipt(a)}
-                    className="w-full flex items-center gap-3 px-5 py-3 hover:bg-olive/4 transition-colors text-left cursor-pointer"
+                    role="button"
+                    tabIndex={isLoading ? -1 : 0}
+                    onClick={() => {
+                      if (!isLoading) void openReceipt(a);
+                    }}
+                    onKeyDown={(e) => {
+                      if (isLoading) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        void openReceipt(a);
+                      }
+                    }}
+                    aria-busy={isLoading ? "true" : undefined}
+                    className={`w-full flex items-center gap-3 px-5 py-3 hover:bg-olive/4 transition-colors text-left ${isLoading ? "opacity-70 cursor-wait pointer-events-none" : "cursor-pointer"}`}
                   >
                     {/* Fecha */}
                     <div className="text-center shrink-0 w-10">
@@ -166,11 +204,20 @@ export default function AppointmentListModal({
                     {/* Monto */}
                     <div className="text-right shrink-0">
                       <div className="text-sm font-medium text-olive">
-                        {a.pricePaid != null ? mxn(a.pricePaid) : "—"}
+                        {isLoading
+                          ? "Abriendo..."
+                          : a.pricePaid != null
+                            ? mxn(a.pricePaid)
+                            : "—"}
                       </div>
                       {a.paymentMethod && (
                         <div className="text-[10px] text-olive/40 mt-0.5">
                           {a.paymentMethod}
+                        </div>
+                      )}
+                      {receiptErrorById[a.id] && (
+                        <div className="text-[10px] text-blossom-dark mt-0.5">
+                          {receiptErrorById[a.id]}
                         </div>
                       )}
                     </div>

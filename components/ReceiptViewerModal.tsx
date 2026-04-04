@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, FileText, Landmark, Receipt } from "lucide-react";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 export type ReceiptViewerData = {
   appointmentId: string;
@@ -49,6 +50,8 @@ export default function ReceiptViewerModal({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailFeedback, setEmailFeedback] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState(receipt.clientEmail ?? "");
+
+  useBodyScrollLock(true);
 
   useEffect(() => {
     const t = setTimeout(() => setIsOpen(true), 10);

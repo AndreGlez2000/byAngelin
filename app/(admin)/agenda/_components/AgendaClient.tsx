@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { parseDurationMin, findOverlap } from "@/lib/appointments";
 import Link from "next/link";
 import {
@@ -14,6 +14,8 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import dynamic from "next/dynamic";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import ReceiptViewerModal from "@/components/ReceiptViewerModal";
+import { showToast } from "@/lib/toast";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 const MobileDayView = dynamic(
   () => import("./MobileDayView").then((m) => ({ default: m.MobileDayView })),
@@ -197,6 +199,16 @@ export function AgendaClient({
     id: string;
     label: string;
   } | null>(null);
+  const [receiptLoadingById, setReceiptLoadingById] = useState<
+    Record<string, boolean>
+  >({});
+  const [receiptErrorById, setReceiptErrorById] = useState<
+    Record<string, string | null>
+  >({});
+  const [mobileDayLoading, setMobileDayLoading] = useState(false);
+  const [mobileDayError, setMobileDayError] = useState<string | null>(null);
+  const [paySubmitting, setPaySubmitting] = useState(false);
+  const receiptInFlightRef = useRef<Set<string>>(new Set());
 
   const createOverlapError = useMemo(() => {
     if (!form.date || !form.time || form.serviceIds.length === 0) return null;
@@ -243,6 +255,14 @@ export function AgendaClient({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
 
+  useBodyScrollLock(
+    showModal ||
+      !!editingAppt ||
+      !!payModal ||
+      !!receiptModal ||
+      !!confirmDelete,
+  );
+
   const fetchAppointments = useCallback(async () => {
     const end = addDays(weekStart, 6);
     end.setHours(23, 59, 59, 999);
@@ -264,15 +284,34 @@ export function AgendaClient({
 
   useEffect(() => {
     if (!isMobile) return;
+    const controller = new AbortController();
     const start = new Date(selectedDay);
     start.setHours(0, 0, 0, 0);
     const end = new Date(selectedDay);
     end.setHours(23, 59, 59, 999);
-    fetch(
-      `/api/appointments?from=${start.toISOString()}&to=${end.toISOString()}`,
-    )
-      .then((r) => r.json())
-      .then(setAppointments);
+    setMobileDayLoading(true);
+    setMobileDayError(null);
+    fetch(`/api/appointments?from=${start.toISOString()}&to=${end.toISOString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("No se pudo cargar la agenda del día");
+        return r.json();
+      })
+      .then((data) => setAppointments(data))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setMobileDayError("No se pudo actualizar la agenda. Reintentá.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setMobileDayLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [selectedDay, isMobile]);
 
   const [didOpenDeepLink, setDidOpenDeepLink] = useState(false);
@@ -294,7 +333,7 @@ export function AgendaClient({
 
     // Si el deep-link corresponde a una cita con recibo, abrir el visor de recibo
     // (y NO el CRUD de editar cita)
-    openReceiptFromAppointment(appt)
+    openReceiptFromAppointment(appt, { silentError: true })
       .catch(() => {
         // No bloquear UX por errores de red en deep-link
       });
@@ -510,7 +549,8 @@ export function AgendaClient({
   }
 
   async function handleCompleteWithPayment() {
-    if (!payModal) return;
+    if (!payModal || paySubmitting) return;
+    setPaySubmitting(true);
     const res = await fetch(`/api/appointments/${payModal.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -524,31 +564,74 @@ export function AgendaClient({
     });
     if (!res.ok) {
       alert("Error al guardar el pago. Intenta de nuevo.");
+      setPaySubmitting(false);
       return;
     }
     setPayModal(null);
+    setPaySubmitting(false);
     fetchAppointments();
   }
 
-  async function openReceiptFromAppointment(appt: { id: string }) {
-    const res = await fetch(`/api/receipts/${appt.id}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setReceiptModal({
-      receiptId: data.id,
-      appointmentId: data.appointmentId,
-      clientId: data.appointment.client.id,
-      clientName: data.appointment.client.name,
-      clientEmail: data.appointment.client.email,
-      services: data.appointment.services.map((s: any) => ({
-        name: s.service.name,
-        price: s.service.price,
-      })),
-      date: data.appointment.date,
-      totalAmount: data.totalAmount,
-      paymentMethod: data.paymentMethod,
-      notes: data.notes,
-    });
+  async function openReceiptFromAppointment(
+    appt: { id: string },
+    options?: { silentError?: boolean },
+  ) {
+    if (receiptInFlightRef.current.has(appt.id)) return;
+
+    receiptInFlightRef.current.add(appt.id);
+    setReceiptLoadingById((prev) => ({ ...prev, [appt.id]: true }));
+    setReceiptErrorById((prev) => ({ ...prev, [appt.id]: null }));
+
+    try {
+      const res = await fetch(`/api/receipts/${appt.id}`);
+      if (res.status === 404) {
+        setReceiptErrorById((prev) => ({
+          ...prev,
+          [appt.id]: "Esta cita no tiene recibo disponible.",
+        }));
+        if (!options?.silentError) {
+          showToast("Esta cita no tiene recibo disponible.", "info");
+        }
+        return;
+      }
+      if (!res.ok) {
+        setReceiptErrorById((prev) => ({
+          ...prev,
+          [appt.id]: "No se pudo abrir el recibo.",
+        }));
+        if (!options?.silentError) {
+          showToast("No se pudo abrir el recibo", "error");
+        }
+        return;
+      }
+      const data = await res.json();
+      setReceiptModal({
+        receiptId: data.id,
+        appointmentId: data.appointmentId,
+        clientId: data.appointment.client.id,
+        clientName: data.appointment.client.name,
+        clientEmail: data.appointment.client.email,
+        services: data.appointment.services.map((s: any) => ({
+          name: s.service.name,
+          price: s.service.price,
+        })),
+        date: data.appointment.date,
+        totalAmount: data.totalAmount,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+      });
+    } catch {
+      setReceiptErrorById((prev) => ({
+        ...prev,
+        [appt.id]: "No se pudo abrir el recibo.",
+      }));
+      if (!options?.silentError) {
+        showToast("No se pudo abrir el recibo", "error");
+      }
+    } finally {
+      receiptInFlightRef.current.delete(appt.id);
+      setReceiptLoadingById((prev) => ({ ...prev, [appt.id]: false }));
+    }
   }
 
   function openAppointmentFromStatus(
@@ -677,20 +760,27 @@ export function AgendaClient({
                         (s) => s.name === a.service,
                       )?.duration;
                       return (
-                        <AppointmentCard
-                          key={a.id}
-                          appointment={a}
-                          displayStatus={displayStatus}
-                          context="agenda"
-                          highlighted={highlightedAppointmentId === a.id}
-                          serviceDuration={svcDuration}
-                          onClick={() =>
-                            openAppointmentFromStatus(a, displayStatus)
-                          }
-                          onReceiptClick={async (appt) => {
-                            await openReceiptFromAppointment(appt);
-                          }}
-                        />
+                        <div key={a.id} className="space-y-1">
+                          <AppointmentCard
+                            appointment={a}
+                            displayStatus={displayStatus}
+                            context="agenda"
+                            highlighted={highlightedAppointmentId === a.id}
+                            serviceDuration={svcDuration}
+                            receiptLoading={!!receiptLoadingById[a.id]}
+                            onClick={() =>
+                              openAppointmentFromStatus(a, displayStatus)
+                            }
+                            onReceiptClick={async (appt) => {
+                              await openReceiptFromAppointment(appt);
+                            }}
+                          />
+                          {receiptErrorById[a.id] && (
+                            <p className="text-[11px] text-blossom-dark px-1">
+                              {receiptErrorById[a.id]}
+                            </p>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -728,6 +818,10 @@ export function AgendaClient({
           onDelete={handleDelete}
           getDisplayStatus={(a) => getDisplayStatus(a, services, today)}
           highlightedAppointmentId={highlightedAppointmentId}
+          isLoading={mobileDayLoading}
+          loadError={mobileDayError}
+          getReceiptLoading={(id) => !!receiptLoadingById[id]}
+          getReceiptError={(id) => receiptErrorById[id]}
         />
       )}
 
@@ -833,9 +927,10 @@ export function AgendaClient({
                 <button
                   type="button"
                   onClick={handleCompleteWithPayment}
-                  className="flex-1 bg-moss text-white text-sm py-2.5 rounded-lg hover:bg-moss/80 transition-colors"
+                  disabled={paySubmitting}
+                  className="flex-1 bg-moss text-white text-sm py-2.5 rounded-lg hover:bg-moss/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Confirmar
+                  {paySubmitting ? "Guardando..." : "Confirmar"}
                 </button>
               </div>
             </div>

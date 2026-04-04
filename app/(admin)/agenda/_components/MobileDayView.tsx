@@ -47,11 +47,16 @@ interface Props {
   onDelete: (id: string) => void
   getDisplayStatus: (appt: Appointment) => Appointment['status']
   highlightedAppointmentId?: string | null
+  isLoading?: boolean
+  loadError?: string | null
+  getReceiptLoading?: (appointmentId: string) => boolean
+  getReceiptError?: (appointmentId: string) => string | null
 }
 
 export function MobileDayView({
   selectedDay, today, appointments, onPrevDay, onNextDay, onToday,
   onNewAppointment, onEdit, onOpenReceipt, onDelete, getDisplayStatus, highlightedAppointmentId,
+  isLoading = false, loadError = null, getReceiptLoading, getReceiptError,
 }: Props) {
   const isToday =
     selectedDay.toDateString() === today.toDateString()
@@ -109,29 +114,46 @@ export function MobileDayView({
       <div className="flex-1 overflow-y-auto">
         {dayAppts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-2">
-            <p className="text-sm text-olive/40">Sin citas este día</p>
+            {isLoading ? (
+              <p className="text-sm text-olive/50">Cargando agenda...</p>
+            ) : (
+              <p className="text-sm text-olive/40">Sin citas este día</p>
+            )}
+            {loadError && (
+              <p className="text-xs text-blossom-dark">{loadError}</p>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3 p-4">
             {dayAppts.map(appt => {
               const displayStatus = getDisplayStatus(appt)
+              const receiptLoading = getReceiptLoading?.(appt.id) ?? false
+              const receiptError = getReceiptError?.(appt.id)
               return (
-                <AppointmentCard
-                  key={appt.id}
-                  appointment={appt}
-                  displayStatus={displayStatus}
-                  context="agenda"
-                  highlighted={highlightedAppointmentId === appt.id}
-                  onClick={() => {
-                    if (displayStatus === 'COMPLETED') {
-                      void onOpenReceipt(appt)
-                      return
-                    }
-                    onEdit(appt)
-                  }}
-                />
+                <div key={appt.id} className="space-y-1">
+                  <AppointmentCard
+                    appointment={appt}
+                    displayStatus={displayStatus}
+                    context="agenda"
+                    highlighted={highlightedAppointmentId === appt.id}
+                    receiptLoading={receiptLoading}
+                    onClick={() => {
+                      if (displayStatus === 'COMPLETED') {
+                        void onOpenReceipt(appt)
+                        return
+                      }
+                      onEdit(appt)
+                    }}
+                  />
+                  {receiptError && (
+                    <p className="text-[11px] text-blossom-dark px-1">{receiptError}</p>
+                  )}
+                </div>
               )
             })}
+            {loadError && (
+              <p className="text-xs text-blossom-dark px-1">{loadError}</p>
+            )}
           </div>
         )}
       </div>

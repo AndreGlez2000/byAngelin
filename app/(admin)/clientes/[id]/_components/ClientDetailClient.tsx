@@ -19,6 +19,7 @@ import { formatPhone } from "@/lib/utils";
 import { showToast } from "@/lib/toast";
 import { PhotoStrip } from "./PhotoStrip";
 import { PhotoLightbox } from "./PhotoLightbox";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 import { AppointmentCard } from "@/components/appointments/AppointmentCard";
 
@@ -284,6 +285,26 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
   const [apptPhotoUploadError, setApptPhotoUploadError] = useState<
     string | null
   >(null);
+  const [receiptLoadingById, setReceiptLoadingById] = useState<
+    Record<string, boolean>
+  >({});
+  const [receiptErrorById, setReceiptErrorById] = useState<
+    Record<string, string | null>
+  >({});
+  const [editActionsVisibleById, setEditActionsVisibleById] = useState<
+    Record<string, boolean>
+  >({});
+
+  const hasOverlayModalOpen =
+    showSkinModal ||
+    showEditClient ||
+    showApptModal ||
+    !!confirmDelete ||
+    showGallery ||
+    !!lightboxPhotoId ||
+    !!receiptModal;
+
+  useBodyScrollLock(hasOverlayModalOpen);
 
   async function loadClient() {
     const res = await fetch(`/api/clients/${client.id}`);
@@ -441,37 +462,60 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
   }
 
   async function openReceiptOrGoAgenda(a: Appointment) {
-    const res = await fetch(`/api/receipts/${a.id}`);
-    if (res.status === 404) {
-      if (a.status !== "COMPLETED") {
-        router.push(
-          `/agenda?appointmentId=${a.id}&date=${new Date(a.date).toISOString()}`,
-        );
+    if (receiptLoadingById[a.id]) return;
+
+    setReceiptLoadingById((prev) => ({ ...prev, [a.id]: true }));
+    setReceiptErrorById((prev) => ({ ...prev, [a.id]: null }));
+
+    try {
+      const res = await fetch(`/api/receipts/${a.id}`);
+      if (res.status === 404) {
+        if (a.status !== "COMPLETED") {
+          router.push(
+            `/agenda?appointmentId=${a.id}&date=${new Date(a.date).toISOString()}`,
+          );
+          return;
+        }
+        setReceiptErrorById((prev) => ({
+          ...prev,
+          [a.id]: "Esta cita completada no tiene recibo.",
+        }));
+        showToast("Esta cita completada no tiene recibo disponible.", "info");
         return;
       }
-      showToast("Esta cita completada no tiene recibo disponible.", "info");
-      return;
-    }
-    if (!res.ok) {
+      if (!res.ok) {
+        setReceiptErrorById((prev) => ({
+          ...prev,
+          [a.id]: "No se pudo abrir el recibo.",
+        }));
+        showToast("No se pudo abrir el recibo", "error");
+        return;
+      }
+      const data = (await res.json()) as ReceiptApi;
+      setReceiptModal({
+        appointmentId: data.appointmentId,
+        receiptId: data.id,
+        clientId: data.appointment.client.id,
+        clientName: data.appointment.client.name,
+        clientEmail: data.appointment.client.email,
+        services: data.appointment.services.map((s) => ({
+          name: s.service.name,
+          price: s.service.price,
+        })),
+        date: data.appointment.date,
+        totalAmount: data.totalAmount,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+      });
+    } catch {
+      setReceiptErrorById((prev) => ({
+        ...prev,
+        [a.id]: "No se pudo abrir el recibo.",
+      }));
       showToast("No se pudo abrir el recibo", "error");
-      return;
+    } finally {
+      setReceiptLoadingById((prev) => ({ ...prev, [a.id]: false }));
     }
-    const data = (await res.json()) as ReceiptApi;
-    setReceiptModal({
-      appointmentId: data.appointmentId,
-      receiptId: data.id,
-      clientId: data.appointment.client.id,
-      clientName: data.appointment.client.name,
-      clientEmail: data.appointment.client.email,
-      services: data.appointment.services.map((s) => ({
-        name: s.service.name,
-        price: s.service.price,
-      })),
-      date: data.appointment.date,
-      totalAmount: data.totalAmount,
-      paymentMethod: data.paymentMethod,
-      notes: data.notes,
-    });
   }
 
   async function confirmDoDelete() {
@@ -683,14 +727,20 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
                       appointment={a}
                       context="history"
                       photoCount={apptPhotoCount}
+                      receiptLoading={!!receiptLoadingById[a.id]}
                       onClick={() => openReceiptOrGoAgenda(a)}
                     />
+                    {receiptErrorById[a.id] && (
+                      <p className="text-[11px] text-blossom-dark mt-1 px-1">
+                        {receiptErrorById[a.id]}
+                      </p>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         openEditAppt(a);
                       }}
-                      className="absolute top-4 right-12 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                      className={`absolute top-4 right-12 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm ${editActionsVisibleById[a.id] ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                       title="Editar cita"
                     >
                       <Pencil size={13} />
@@ -700,10 +750,23 @@ export function ClientDetailClient({ client: initialClient }: { client: any }) {
                         e.stopPropagation();
                         handleApptDelete(a.id);
                       }}
-                      className="absolute bottom-4 right-4 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                      className={`absolute bottom-4 right-4 p-1.5 rounded hover:bg-blossom/20 text-olive/25 hover:text-blossom-dark transition-colors z-20 bg-white/50 backdrop-blur-sm ${editActionsVisibleById[a.id] ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                       title="Eliminar cita"
                     >
                       <Trash2 size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditActionsVisibleById((prev) => ({
+                          ...prev,
+                          [a.id]: !prev[a.id],
+                        }));
+                      }}
+                      className="md:hidden absolute top-3 right-3 px-2 py-1 text-[10px] border border-olive/20 rounded-full bg-white/80 text-olive/70 z-30"
+                    >
+                      {editActionsVisibleById[a.id] ? "Ocultar" : "Acciones"}
                     </button>
                   </div>
                 );

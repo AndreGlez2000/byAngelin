@@ -28,6 +28,7 @@ interface AppointmentCardProps {
   serviceDuration?: string | null
   id?: string
   photoCount?: number
+  receiptLoading?: boolean
 }
 
 export function AppointmentCard({
@@ -41,6 +42,7 @@ export function AppointmentCard({
   serviceDuration,
   id,
   photoCount,
+  receiptLoading = false,
 }: AppointmentCardProps) {
   const status = displayStatus || appointment.status
 
@@ -170,9 +172,10 @@ export function AppointmentCard({
             {appointment.receipt && onReceiptClick && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReceiptClick(appointment, e) }}
-                className="text-[10px] flex items-center gap-1 text-moss-dark hover:text-moss font-medium transition-colors ml-auto"
+                disabled={receiptLoading}
+                className="text-[10px] flex items-center gap-1 text-moss-dark hover:text-moss font-medium transition-colors ml-auto disabled:opacity-60 disabled:cursor-wait"
               >
-                <Receipt size={10} /> Recibo
+                <Receipt size={10} /> {receiptLoading ? "Abriendo..." : "Recibo"}
               </button>
             )}
             {appointment.sessionNotes && !appointment.receipt && (
